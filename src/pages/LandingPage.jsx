@@ -1,9 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 export default function LandingPage() {
   const navigate = useNavigate()
-  const [recentProjects, setRecentProjects] = useState([])
   const [projectIdInput, setProjectIdInput] = useState('')
 
   const slugify = (text) => {
@@ -14,25 +13,6 @@ export default function LandingPage() {
       .replace(/[\s_-]+/g, '-')
       .replace(/^-+|-+$/g, '') || text
   }
-
-  useEffect(() => {
-    try {
-      // Find all projects in localStorage
-      const recents = []
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key && key.startsWith('project_')) {
-          try {
-            const p = JSON.parse(localStorage.getItem(key))
-            if (p && p.id && p.name && !recents.some(r => r.id === p.id)) {
-              recents.push(p)
-            }
-          } catch {}
-        }
-      }
-      setRecentProjects(recents)
-    } catch {}
-  }, [])
 
   const handleOpenProject = (e) => {
     e.preventDefault()
@@ -82,7 +62,7 @@ export default function LandingPage() {
         </p>
 
         {/* CTA & Join Box */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%', maxWidth: 520, margin: '0 auto 3rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, width: '100%', maxWidth: 520, margin: '0 auto 4rem' }}>
           <button 
             onClick={() => navigate('/create')}
             style={{ padding: '14px 32px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 16, boxShadow: '0 4px 14px rgba(37,99,235,0.3)', cursor: 'pointer' }}
@@ -107,37 +87,6 @@ export default function LandingPage() {
             </button>
           </form>
         </div>
-
-        {/* Recent Workspaces Section (If Any) */}
-        {recentProjects.length > 0 && (
-          <div style={{ width: '100%', marginBottom: '4rem', textAlign: 'left' }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-              📁 Your Recent Workspaces
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
-              {recentProjects.map(p => (
-                <div 
-                  key={p.id}
-                  onClick={() => navigate(`/project/${p.id}`)}
-                  style={{
-                    background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 12, padding: '1.25rem',
-                    cursor: 'pointer', transition: 'all 0.2s ease', boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#2563EB'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = '#E2E8F0'}
-                >
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>{p.name}</div>
-                  <div style={{ fontSize: 12, color: '#64748B' }}>
-                    Target Deadline: {new Date(p.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#2563EB', marginTop: 10, fontWeight: 600 }}>
-                    Open Workspace → (/project/{p.id})
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Feature Cards Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, width: '100%', textAlign: 'left' }}>
