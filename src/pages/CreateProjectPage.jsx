@@ -10,19 +10,38 @@ export default function CreateProjectPage() {
   const [adminName, setAdminName] = useState('')
   const [adminPin, setAdminPin] = useState('')
   const [memberInput, setMemberInput] = useState('')
+  const [memberPinInput, setMemberPinInput] = useState('')
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const generateRandomPin = () => {
+    return Math.floor(1000 + Math.random() * 9000).toString()
+  }
+
   const addMember = () => {
-    const trimmed = memberInput.trim()
-    if (!trimmed) return
-    if (members.some(m => m.name.toLowerCase() === trimmed.toLowerCase()) || trimmed.toLowerCase() === adminName.trim().toLowerCase()) {
-      setError('Member name already exists')
+    const trimmedName = memberInput.trim()
+    if (!trimmedName) return
+
+    if (members.some(m => m.name.toLowerCase() === trimmedName.toLowerCase()) || trimmedName.toLowerCase() === adminName.trim().toLowerCase()) {
+      setError('Member name already exists in roster.')
       return
     }
-    setMembers([...members, { id: `mem_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`, name: trimmed }])
+
+    const assignedPin = memberPinInput.trim() || generateRandomPin()
+
+    setMembers([
+      ...members, 
+      { 
+        id: `mem_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`, 
+        name: trimmedName, 
+        pin: assignedPin,
+        isAdmin: false
+      }
+    ])
+
     setMemberInput('')
+    setMemberPinInput('')
     setError('')
   }
 
@@ -52,7 +71,7 @@ export default function CreateProjectPage() {
 
       const formattedMembers = [
         adminMember,
-        ...members.map(m => ({ id: m.id, name: m.name, pin: null, isAdmin: false }))
+        ...members
       ]
 
       const initialSharedTasks = [
@@ -71,15 +90,24 @@ export default function CreateProjectPage() {
         id: projectId,
         name: projectName.trim(),
         deadline,
-        createdAt: serverTimestamp(),
+        createdAt: new Date().toISOString(),
         members: formattedMembers,
         sharedTasks: initialSharedTasks
       }
 
+      // Always write to localStorage so local offline testing NEVER fails
+      localStorage.setItem(`project_${projectId}`, JSON.stringify(projectData))
+
+      // Try writing to Firestore if configured
       if (isFirebaseConfigured && db) {
-        await setDoc(doc(db, 'projects', projectId), projectData)
-      } else {
-        localStorage.setItem(`project_${projectId}`, JSON.stringify(projectData))
+        try {
+          await setDoc(doc(db, 'projects', projectId), {
+            ...projectData,
+            createdAt: serverTimestamp()
+          })
+        } catch (fsErr) {
+          console.warn('Firestore write failed, using local storage fallback:', fsErr)
+        }
       }
 
       // Automatically sign in admin in sessionStorage
@@ -89,7 +117,7 @@ export default function CreateProjectPage() {
       navigate(`/project/${projectId}`)
     } catch (err) {
       console.error('Error creating project:', err)
-      setError('Failed to create project. Please try again.')
+      setError('Failed to create project: ' + err.message)
     } finally {
       setLoading(false)
     }
@@ -97,16 +125,16 @@ export default function CreateProjectPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '2rem 1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{ width: '100%', maxWidth: 540, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 20, padding: '2.5rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
+      <div style={{ width: '100%', maxWidth: 580, background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 20, padding: '2.5rem', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)' }}>
         <button 
           onClick={() => navigate('/')}
-          style={{ background: 'none', border: 'none', color: '#64748B', fontSize: 13, fontWeight: 500, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 6 }}
+          style={{ background: 'none', border: 'none', color: '#64748B', fontSize: 13, fontWeight: 500, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
         >
           ← Back to home
         </button>
 
         <h2 style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', marginBottom: 6 }}>Create New Project Workspace</h2>
-        <p style={{ fontSize: 14, color: '#64748B', marginBottom: '2rem' }}>Set up your project details, deadline, and team roster.</p>
+        <p style={{ fontSize: 14, color: '#64748B', marginBottom: '2rem' }}>Set up your project details, deadline, and assign team PINs.</p>
 
         {error && (
           <div style={{ padding: '12px 16px', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: 8, fontSize: 13, marginBottom: '1.5rem' }}>
@@ -168,33 +196,46 @@ export default function CreateProjectPage() {
           </div>
 
           <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Add Team Members</label>
-            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 10 }}>Team members will pick their own PIN when they first join.</p>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>Add Team Members & Assign PINs</label>
+            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>Enter member name and optional PIN (or click Auto-PIN to generate one).</p>
 
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, marginBottom: 12 }}>
               <input 
                 type="text"
                 placeholder="Member name"
                 value={memberInput}
                 onChange={e => setMemberInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addMember())}
-                style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1.5px solid #CBD5E1', fontSize: 14 }}
+                style={{ padding: '9px 12px', borderRadius: 8, border: '1.5px solid #CBD5E1', fontSize: 14 }}
+              />
+              <input 
+                type="text"
+                placeholder="PIN (4 digits)"
+                maxLength={8}
+                value={memberPinInput}
+                onChange={e => setMemberPinInput(e.target.value)}
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1.5px solid #CBD5E1', fontSize: 14, textAlign: 'center' }}
               />
               <button 
                 type="button"
                 onClick={addMember}
-                style={{ padding: '9px 16px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: 8, fontWeight: 600, fontSize: 13 }}
+                style={{ padding: '9px 16px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
               >
-                + Add
+                + Add Member
               </button>
             </div>
 
             {members.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                 {members.map(m => (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#1E40AF', padding: '5px 12px', borderRadius: 20, fontSize: 13, fontWeight: 500 }}>
-                    <span>{m.name}</span>
-                    <button type="button" onClick={() => removeMember(m.id)} style={{ background: 'none', border: 'none', color: '#1E40AF', cursor: 'pointer', fontSize: 14 }}>×</button>
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#EFF6FF', color: '#1E40AF', padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontWeight: 600 }}>👤 {m.name}</span>
+                      <span style={{ background: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: 6, fontSize: 12, fontFamily: 'monospace' }}>
+                        PIN: {m.pin}
+                      </span>
+                    </div>
+                    <button type="button" onClick={() => removeMember(m.id)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>✕</button>
                   </div>
                 ))}
               </div>
@@ -204,7 +245,7 @@ export default function CreateProjectPage() {
           <button 
             type="submit"
             disabled={loading}
-            style={{ width: '100%', padding: '14px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 15, marginTop: 10 }}
+            style={{ width: '100%', padding: '14px', background: '#2563EB', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 15, marginTop: 10, cursor: 'pointer' }}
           >
             {loading ? 'Creating Project...' : 'Create Workspace & Launch →'}
           </button>

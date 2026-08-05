@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { doc, onSnapshot, setDoc, getDoc, collection, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc, collection, query, orderBy, serverTimestamp } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../firebase.js'
 import PinGate from '../components/PinGate.jsx'
 import Countdown from '../components/Countdown.jsx'
@@ -13,7 +13,12 @@ export default function ProjectPage() {
   const { projectId } = useParams()
   const navigate = useNavigate()
 
-  const [project, setProject] = useState(null)
+  const [project, setProject] = useState(() => {
+    try {
+      const local = localStorage.getItem(`project_${projectId}`)
+      return local ? JSON.parse(local) : null
+    } catch { return null }
+  })
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const stored = sessionStorage.getItem(`taskforge_user_${projectId}`)
@@ -21,8 +26,23 @@ export default function ProjectPage() {
     } catch { return null }
   })
   const [authed, setAuthed] = useState(() => !!sessionStorage.getItem(`taskforge_auth_${projectId}`))
-  const [checkedState, setCheckedState] = useState({})
-  const [privateTasks, setPrivateTasks] = useState([])
+  const [checkedState, setCheckedState] = useState(() => {
+    try {
+      const local = localStorage.getItem(`project_checked_${projectId}`)
+      return local ? JSON.parse(local) : {}
+    } catch { return {} }
+  })
+  const [privateTasks, setPrivateTasks] = useState(() => {
+    try {
+      const storedUser = sessionStorage.getItem(`taskforge_user_${projectId}`)
+      if (storedUser) {
+        const u = JSON.parse(storedUser)
+        const local = localStorage.getItem(`project_private_${projectId}_${u.id}`)
+        return local ? JSON.parse(local) : []
+      }
+      return []
+    } catch { return [] }
+  })
   const [activeUsers, setActiveUsers] = useState([])
   const [editMode, setEditMode] = useState(false)
   const [phaseFilter, setPhaseFilter] = useState(0)
@@ -33,16 +53,24 @@ export default function ProjectPage() {
   useEffect(() => {
     if (!projectId) return
 
+    // Load local first
+    const local = localStorage.getItem(`project_${projectId}`)
+    if (local) {
+      setProject(JSON.parse(local))
+    }
+
     if (isFirebaseConfigured && db) {
-      const unsub = onSnapshot(doc(db, 'projects', projectId), (snap) => {
-        if (snap.exists()) {
-          setProject(snap.data())
-        }
-      })
-      return unsub
-    } else {
-      const local = localStorage.getItem(`project_${projectId}`)
-      if (local) setProject(JSON.parse(local))
+      try {
+        const unsub = onSnapshot(doc(db, 'projects', projectId), (snap) => {
+          if (snap.exists()) {
+            setProject(snap.data())
+            localStorage.setItem(`project_${projectId}`, JSON.stringify(snap.data()))
+          }
+        }, (err) => console.warn('Firestore snapshot notice:', err))
+        return unsub
+      } catch (e) {
+        console.warn('Firestore init failed, using local storage:', e)
+      }
     }
   }, [projectId])
 
@@ -51,14 +79,19 @@ export default function ProjectPage() {
     if (!authed || !projectId) return
 
     if (isFirebaseConfigured && db) {
-      const ref = doc(db, 'projects', projectId, 'state', 'checked')
-      const unsub = onSnapshot(ref, (snap) => {
-        if (snap.exists()) {
-          const { _ts, ...data } = snap.data()
-          setCheckedState(data)
-        }
-      })
-      return unsub
+      try {
+        const ref = doc(db, 'projects', projectId, 'state', 'checked')
+        const unsub = onSnapshot(ref, (snap) => {
+          if (snap.exists()) {
+            const { _ts, ...data } = snap.data()
+            setCheckedState(data)
+            localStorage.setItem(`project_checked_${projectId}`, JSON.stringify(data))
+          }
+        }, (err) => console.warn('Checked snapshot notice:', err))
+        return unsub
+      } catch (e) {
+        console.warn('Checked state firestore notice:', e)
+      }
     }
   }, [authed, projectId])
 
@@ -66,14 +99,23 @@ export default function ProjectPage() {
   useEffect(() => {
     if (!authed || !projectId || !currentUser) return
 
+    const localPriv = localStorage.getItem(`project_private_${projectId}_${currentUser.id}`)
+    if (localPriv) setPrivateTasks(JSON.parse(localPriv))
+
     if (isFirebaseConfigured && db) {
-      const ref = doc(db, 'projects', projectId, 'private', currentUser.id)
-      const unsub = onSnapshot(ref, (snap) => {
-        if (snap.exists()) {
-          setPrivateTasks(snap.data().tasks || [])
-        }
-      })
-      return unsub
+      try {
+        const ref = doc(db, 'projects', projectId, 'private', currentUser.id)
+        const unsub = onSnapshot(ref, (snap) => {
+          if (snap.exists()) {
+            const tasks = snap.data().tasks || []
+            setPrivateTasks(tasks)
+            localStorage.setItem(`project_private_${projectId}_${currentUser.id}`, JSON.stringify(tasks))
+          }
+        }, (err) => console.warn('Private tasks snapshot notice:', err))
+        return unsub
+      } catch (e) {
+        console.warn('Private tasks notice:', e)
+      }
     }
   }, [authed, projectId, currentUser])
 
@@ -83,26 +125,30 @@ export default function ProjectPage() {
 
     const presenceId = currentUser.id
     if (isFirebaseConfigured && db) {
-      const presenceRef = doc(db, 'projects', projectId, 'presence', presenceId)
-      const updatePresence = async () => {
-        try {
-          await setDoc(presenceRef, { name: currentUser.name, lastSeen: serverTimestamp() }, { merge: true })
-        } catch (err) { console.warn('Presence error:', err) }
+      try {
+        const presenceRef = doc(db, 'projects', projectId, 'presence', presenceId)
+        const updatePresence = async () => {
+          try {
+            await setDoc(presenceRef, { name: currentUser.name, lastSeen: serverTimestamp() }, { merge: true })
+          } catch (err) { console.warn('Presence error:', err) }
+        }
+
+        updatePresence()
+        const interval = setInterval(updatePresence, 5000)
+
+        const presenceQuery = query(collection(db, 'projects', projectId, 'presence'), orderBy('lastSeen', 'desc'))
+        const unsub = onSnapshot(presenceQuery, (snap) => {
+          const now = Date.now()
+          const users = snap.docs
+            .map(d => d.data())
+            .filter(u => u.name && u.lastSeen?.toMillis && (now - u.lastSeen.toMillis() < 30000))
+          setActiveUsers(users)
+        })
+
+        return () => { clearInterval(interval); unsub() }
+      } catch (e) {
+        console.warn('Presence firestore notice:', e)
       }
-
-      updatePresence()
-      const interval = setInterval(updatePresence, 5000)
-
-      const presenceQuery = query(collection(db, 'projects', projectId, 'presence'), orderBy('lastSeen', 'desc'))
-      const unsub = onSnapshot(presenceQuery, (snap) => {
-        const now = Date.now()
-        const users = snap.docs
-          .map(d => d.data())
-          .filter(u => u.name && u.lastSeen?.toMillis && (now - u.lastSeen.toMillis() < 30000))
-        setActiveUsers(users)
-      })
-
-      return () => { clearInterval(interval); unsub() }
     }
   }, [authed, projectId, currentUser])
 
@@ -120,14 +166,19 @@ export default function ProjectPage() {
     }
 
     setCheckedState(updated)
+    localStorage.setItem(`project_checked_${projectId}`, JSON.stringify(updated))
 
     if (isFirebaseConfigured && db) {
-      const ref = doc(db, 'projects', projectId, 'state', 'checked')
-      await setDoc(ref, {
-        [taskId]: isChecked,
-        [`${taskId}__meta`]: isChecked ? { by: currentUser.name, at: timeStr } : null,
-        _ts: serverTimestamp()
-      }, { merge: true })
+      try {
+        const ref = doc(db, 'projects', projectId, 'state', 'checked')
+        await setDoc(ref, {
+          [taskId]: isChecked,
+          [`${taskId}__meta`]: isChecked ? { by: currentUser.name, at: timeStr } : null,
+          _ts: serverTimestamp()
+        }, { merge: true })
+      } catch (e) {
+        console.warn('Toggle task firestore sync notice:', e)
+      }
     }
   }, [checkedState, currentUser, projectId])
 
@@ -136,11 +187,14 @@ export default function ProjectPage() {
     if (!project || !projectId) return
     const updatedProject = { ...project, sharedTasks: newSharedTasks }
     setProject(updatedProject)
+    localStorage.setItem(`project_${projectId}`, JSON.stringify(updatedProject))
 
     if (isFirebaseConfigured && db) {
-      await setDoc(doc(db, 'projects', projectId), { sharedTasks: newSharedTasks }, { merge: true })
-    } else {
-      localStorage.setItem(`project_${projectId}`, JSON.stringify(updatedProject))
+      try {
+        await setDoc(doc(db, 'projects', projectId), { sharedTasks: newSharedTasks }, { merge: true })
+      } catch (e) {
+        console.warn('Save shared tasks notice:', e)
+      }
     }
   }
 
@@ -148,9 +202,14 @@ export default function ProjectPage() {
   const handleSavePrivateTasks = async (newPrivateTasks) => {
     if (!currentUser || !projectId) return
     setPrivateTasks(newPrivateTasks)
+    localStorage.setItem(`project_private_${projectId}_${currentUser.id}`, JSON.stringify(newPrivateTasks))
 
     if (isFirebaseConfigured && db) {
-      await setDoc(doc(db, 'projects', projectId, 'private', currentUser.id), { tasks: newPrivateTasks }, { merge: true })
+      try {
+        await setDoc(doc(db, 'projects', projectId, 'private', currentUser.id), { tasks: newPrivateTasks }, { merge: true })
+      } catch (e) {
+        console.warn('Save private tasks notice:', e)
+      }
     }
   }
 
