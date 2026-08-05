@@ -6,16 +6,25 @@ export default function LandingPage() {
   const [recentProjects, setRecentProjects] = useState([])
   const [projectIdInput, setProjectIdInput] = useState('')
 
+  const slugify = (text) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || text
+  }
+
   useEffect(() => {
     try {
       // Find all projects in localStorage
       const recents = []
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
-        if (key && key.startsWith('project_prj_')) {
+        if (key && key.startsWith('project_')) {
           try {
             const p = JSON.parse(localStorage.getItem(key))
-            if (p && p.id && p.name) {
+            if (p && p.id && p.name && !recents.some(r => r.id === p.id)) {
               recents.push(p)
             }
           } catch {}
@@ -35,7 +44,9 @@ export default function LandingPage() {
       input = input.split('/project/')[1].split('?')[0].split('#')[0]
     }
 
-    navigate(`/project/${input}`)
+    // Convert spaces/capitalization to slug if title name was typed
+    const targetSlug = slugify(input)
+    navigate(`/project/${targetSlug}`)
   }
 
   return (
@@ -83,7 +94,7 @@ export default function LandingPage() {
           <form onSubmit={handleOpenProject} style={{ display: 'flex', gap: 8, background: '#FFFFFF', padding: '6px 6px 6px 14px', borderRadius: 12, border: '1.5px solid #CBD5E1', boxShadow: '0 2px 4px rgba(0,0,0,0.03)' }}>
             <input 
               type="text"
-              placeholder="Paste Project Link or Project ID..."
+              placeholder="Enter Project Title Name or Link..."
               value={projectIdInput}
               onChange={e => setProjectIdInput(e.target.value)}
               style={{ flex: 1, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }}
@@ -120,7 +131,7 @@ export default function LandingPage() {
                     Target Deadline: {new Date(p.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                   <div style={{ fontSize: 11, color: '#2563EB', marginTop: 10, fontWeight: 600 }}>
-                    Open Workspace →
+                    Open Workspace → (/project/{p.id})
                   </div>
                 </div>
               ))}

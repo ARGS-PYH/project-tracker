@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import { db, isFirebaseConfigured } from '../firebase.js'
 
 export default function CreateProjectPage() {
@@ -17,6 +17,15 @@ export default function CreateProjectPage() {
 
   const generateRandomPin = () => {
     return Math.floor(1000 + Math.random() * 9000).toString()
+  }
+
+  const slugify = (text) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'project'
   }
 
   const addMember = () => {
@@ -60,8 +69,26 @@ export default function CreateProjectPage() {
     setError('')
 
     try {
-      const projectId = `prj_${Date.now().toString(36)}_${Math.random().toString(36).substr(2, 5)}`
-      
+      const baseSlug = slugify(projectName)
+      let finalProjectId = baseSlug
+
+      // Check collision in localStorage
+      if (localStorage.getItem(`project_${finalProjectId}`)) {
+        finalProjectId = `${baseSlug}-${Math.random().toString(36).substr(2, 4)}`
+      }
+
+      // Check collision in Firestore if configured
+      if (isFirebaseConfigured && db) {
+        try {
+          const snap = await getDoc(doc(db, 'projects', finalProjectId))
+          if (snap.exists()) {
+            finalProjectId = `${baseSlug}-${Math.random().toString(36).substr(2, 4)}`
+          }
+        } catch (e) {
+          console.warn('Firestore slug check notice:', e)
+        }
+      }
+
       const adminMember = {
         id: `admin_${Date.now()}`,
         name: adminName.trim(),
@@ -87,7 +114,7 @@ export default function CreateProjectPage() {
       ]
 
       const projectData = {
-        id: projectId,
+        id: finalProjectId,
         name: projectName.trim(),
         deadline,
         createdAt: new Date().toISOString(),
@@ -95,26 +122,26 @@ export default function CreateProjectPage() {
         sharedTasks: initialSharedTasks
       }
 
-      // Always write to localStorage so local offline testing NEVER fails
-      localStorage.setItem(`project_${projectId}`, JSON.stringify(projectData))
+      // Always save to localStorage for instant local access
+      localStorage.setItem(`project_${finalProjectId}`, JSON.stringify(projectData))
 
       // Try writing to Firestore if configured
       if (isFirebaseConfigured && db) {
         try {
-          await setDoc(doc(db, 'projects', projectId), {
+          await setDoc(doc(db, 'projects', finalProjectId), {
             ...projectData,
             createdAt: serverTimestamp()
           })
         } catch (fsErr) {
-          console.warn('Firestore write failed, using local storage fallback:', fsErr)
+          console.warn('Firestore write fallback to local storage:', fsErr)
         }
       }
 
       // Automatically sign in admin in sessionStorage
-      sessionStorage.setItem(`taskforge_auth_${projectId}`, '1')
-      sessionStorage.setItem(`taskforge_user_${projectId}`, JSON.stringify(adminMember))
+      sessionStorage.setItem(`taskforge_auth_${finalProjectId}`, '1')
+      sessionStorage.setItem(`taskforge_user_${finalProjectId}`, JSON.stringify(adminMember))
 
-      navigate(`/project/${projectId}`)
+      navigate(`/project/${finalProjectId}`)
     } catch (err) {
       console.error('Error creating project:', err)
       setError('Failed to create project: ' + err.message)
@@ -144,7 +171,7 @@ export default function CreateProjectPage() {
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Project Name *</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Project Title Name *</label>
             <input 
               type="text"
               placeholder="e.g. HomeOS Launch"
@@ -153,6 +180,11 @@ export default function CreateProjectPage() {
               style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #CBD5E1', fontSize: 14, outline: 'none' }}
               required
             />
+            {projectName.trim() && (
+              <div style={{ fontSize: 12, color: '#2563EB', marginTop: 4, fontWeight: 500 }}>
+                🔗 Project URL ID will be: <strong>/project/{slugify(projectName)}</strong>
+              </div>
+            )}
           </div>
 
           <div>
@@ -197,7 +229,7 @@ export default function CreateProjectPage() {
 
           <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '1.5rem' }}>
             <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>Add Team Members & Assign PINs</label>
-            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>Enter member name and optional PIN (or click Auto-PIN to generate one).</p>
+            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 12 }}>Enter member name and optional PIN (or click Add Member to auto-generate a PIN).</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, marginBottom: 12 }}>
               <input 
