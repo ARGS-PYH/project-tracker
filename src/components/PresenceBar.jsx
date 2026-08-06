@@ -8,7 +8,7 @@ export default function PresenceBar({ activeUsers, lastAction }) {
         </div>
       )}
       {lastAction && (
-        <div style={{ fontSize: 10, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
+        <div style={{ fontSize: 10, color: '#746E64', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>
           Last action: {lastAction.by} checked "{lastAction.taskLabel}" at {lastAction.at}
         </div>
       )}

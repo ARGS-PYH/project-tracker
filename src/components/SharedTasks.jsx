@@ -1,7 +1,6 @@
 import { useState } from 'react'
 
-const G = '#2563EB'
-const G_LITE = '#EFF6FF'
+const G = '#5F7A61'
 const pct = (done, total) => total === 0 ? 0 : Math.round((done / total) * 100)
 
 function Bar({ done, total, height = 6 }) {
@@ -68,17 +67,17 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
 
         return (
           <div key={group.id || gi} style={{
-            background: '#FFFFFF',
-            border: `1px solid ${allDone ? '#10B981' : '#E2E8F0'}`,
+            background: '#FFFDF8',
+            border: `1px solid ${allDone ? '#8AA176' : '#DED8CD'}`,
             borderRadius: 12,
             overflow: 'hidden',
             transition: 'border-color 0.2s',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+            boxShadow: '0 4px 10px -8px rgba(36,33,29,0.25)'
           }}>
             {/* Group Header */}
             <div style={{
               padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10,
-              background: allDone ? '#ECFDF5' : '#F8FAFC', borderBottom: '1px solid #E2E8F0'
+              background: allDone ? '#EEF3ED' : '#F4F0E8', borderBottom: '1px solid #DED8CD'
             }}>
               {editMode ? (
                 <select 
@@ -93,7 +92,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
               ) : (
                 <span style={{
                   fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 20, letterSpacing: '0.04em',
-                  background: '#2563EB', color: '#fff'
+                  background: '#5F7A61', color: '#fff'
                 }}>Phase {group.phase || 1}</span>
               )}
 
@@ -104,13 +103,13 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                   style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 14, fontWeight: 600 }}
                 />
               ) : (
-                <span style={{ fontWeight: 600, fontSize: 14, color: '#0F172A', flex: 1 }}>{group.title}</span>
+                <span style={{ fontWeight: 600, fontSize: 14, color: '#24211D', flex: 1 }}>{group.title}</span>
               )}
 
               {editMode ? (
-                <button onClick={() => handleDeleteGroup(gi)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 14 }}>🗑️</button>
+                <button onClick={() => handleDeleteGroup(gi)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 14 }}>Delete</button>
               ) : (
-                <span style={{ fontSize: 12, color: allDone ? '#10B981' : '#64748B', fontWeight: allDone ? 700 : 500 }}>
+                <span style={{ fontSize: 12, color: allDone ? '#5F7A61' : '#746E64', fontWeight: allDone ? 700 : 500 }}>
                   {doneCount}/{items.length}
                 </span>
               )}
@@ -128,14 +127,14 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
               return (
                 <div key={item.id || ii} style={{
                   display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px',
-                  borderTop: '1px solid #F1F5F9', background: isChecked && !editMode ? '#F8FAFC' : 'transparent'
+                  borderTop: '1px solid #EFEAE1', background: isChecked && !editMode ? '#F7F5F0' : 'transparent'
                 }}>
                   {!editMode && (
                     <input 
                       type="checkbox" 
                       checked={isChecked} 
                       onChange={() => onToggle(item.id)} 
-                      style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', accentColor: '#2563EB' }} 
+                      style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', accentColor: '#5F7A61' }} 
                     />
                   )}
                   <div style={{ flex: 1 }}>
@@ -148,17 +147,17 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                     ) : (
                       <span 
                         onClick={() => onToggle(item.id)}
-                        style={{ fontSize: 13, lineHeight: 1.5, color: isChecked ? '#94A3B8' : '#1E293B', textDecoration: isChecked ? 'line-through' : 'none', cursor: 'pointer' }}
+                        style={{ fontSize: 13, lineHeight: 1.5, color: isChecked ? '#9A9287' : '#24211D', textDecoration: isChecked ? 'line-through' : 'none', cursor: 'pointer' }}
                       >
                         {item.text}
                       </span>
                     )}
                     {isChecked && meta && !editMode && (
-                      <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>✓ {meta.by} · {meta.at}</div>
+                      <div style={{ fontSize: 11, color: '#9A9287', marginTop: 2 }}>Done by {meta.by} - {meta.at}</div>
                     )}
                   </div>
                   {editMode && (
-                    <button onClick={() => handleDeleteTask(gi, ii)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>✕</button>
+                    <button onClick={() => handleDeleteTask(gi, ii)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>x</button>
                   )}
                 </div>
               )
@@ -166,7 +165,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
 
             {editMode && (
               <div style={{ padding: '10px 16px', borderTop: '1px solid #F1F5F9' }}>
-                <button onClick={() => handleAddTask(gi)} style={{ fontSize: 12, color: '#2563EB', background: '#EFF6FF', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>+ Add Task</button>
+                <button onClick={() => handleAddTask(gi)} style={{ fontSize: 12, color: '#3F5F45', background: '#EEF3ED', border: 'none', padding: '6px 12px', borderRadius: 6, cursor: 'pointer', fontWeight: 600 }}>+ Add Task</button>
               </div>
             )}
           </div>
@@ -174,7 +173,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
       })}
 
       {editMode && (
-        <button onClick={handleAddGroup} style={{ padding: '14px', border: '1.5px dashed #CBD5E1', borderRadius: 12, background: '#FFFFFF', color: '#64748B', cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+        <button onClick={handleAddGroup} style={{ padding: '14px', border: '1.5px dashed #CFC7B9', borderRadius: 12, background: '#FFFDF8', color: '#746E64', cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
           + Add New Phase / Group
         </button>
       )}

@@ -18,16 +18,16 @@ export default function Countdown({ deadline }) {
 
   if (timeLeft < 0) {
     return (
-      <div style={{ background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: 12, padding: '16px 20px', marginBottom: '1.5rem', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#065F46', margin: 0 }}>🚀 Target Date Arrived / Launch Day!</h2>
+      <div style={{ background: '#EEF3ED', border: '1px solid #D4DEC9', borderRadius: 12, padding: '16px 20px', marginBottom: '1.5rem', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#3F5F45', margin: 0 }}>Target Date Arrived / Launch Day!</h2>
       </div>
     )
   }
 
   return (
-    <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 12, padding: '16px 20px', marginBottom: '1.5rem', textAlign: 'center' }}>
-      <div style={{ fontSize: 12, color: '#64748B', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
-        ⏱️ Target Launch Countdown ({new Date(deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
+    <div style={{ background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 12, padding: '16px 20px', marginBottom: '1.5rem', textAlign: 'center' }}>
+      <div style={{ fontSize: 12, color: '#746E64', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+        Target Launch Countdown ({new Date(deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
         {[
@@ -37,7 +37,7 @@ export default function Countdown({ deadline }) {
           { label: 'Secs', value: seconds },
         ].map(({ label, value }) => (
           <div key={label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 50 }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: '#0F172A', lineHeight: 1, fontFamily: 'monospace' }}>
+            <div style={{ fontSize: 26, fontWeight: 800, color: '#24211D', lineHeight: 1, fontFamily: 'monospace' }}>
               {value.toString().padStart(2, '0')}
             </div>
             <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4, fontWeight: 500 }}>{label}</div>

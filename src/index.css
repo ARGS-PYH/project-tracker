@@ -1,15 +1,15 @@
 :root {
-  --primary: #1E293B;
-  --primary-hover: #0F172A;
-  --brand: #2563EB;
-  --brand-light: #EFF6FF;
+  --primary: #24211D;
+  --primary-hover: #171512;
+  --brand: #5F7A61;
+  --brand-light: #EEF3ED;
   --accent: #10B981;
   --accent-light: #ECFDF5;
-  --bg: #F8FAFC;
+  --bg: #F7F5F0;
   --card-bg: #FFFFFF;
-  --text-main: #0F172A;
-  --text-muted: #64748B;
-  --border: #E2E8F0;
+  --text-main: #24211D;
+  --text-muted: #746E64;
+  --border: #DED8CD;
   --radius-lg: 16px;
   --radius-md: 12px;
   --radius-sm: 8px;
