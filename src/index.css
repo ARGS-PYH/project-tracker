@@ -1,13 +1,17 @@
 :root, [data-theme="dark"] {
   --primary: #10B981;
   --primary-hover: #059669;
+  --primary-text: #090D16;
   --brand: #10B981;
-  --brand-light: rgba(16, 185, 129, 0.12);
+  --brand-light: rgba(16, 185, 129, 0.14);
+  --brand-border: rgba(16, 185, 129, 0.3);
+  --brand-text: #34D399;
   --accent: #6366F1;
   --accent-light: rgba(99, 102, 241, 0.12);
   --bg: #090D16;
-  --header-bg: rgba(17, 24, 39, 0.85);
+  --header-bg: rgba(17, 24, 39, 0.9);
   --card-bg: #111827;
+  --card-sub-bg: #0D131F;
   --card-hover: #162032;
   --input-bg: #0D131F;
   --text-main: #F9FAFB;
@@ -15,23 +19,34 @@
   --text-sub: #6B7280;
   --border: #1F293D;
   --border-light: #2D3748;
+  --btn-secondary-bg: #1F293D;
+  --btn-secondary-text: #F9FAFB;
+  --btn-secondary-border: #2D3748;
+  --active-tab-bg: rgba(16, 185, 129, 0.15);
+  --active-tab-text: #34D399;
+  --active-tab-border: #10B981;
   --radius-lg: 16px;
   --radius-md: 12px;
   --radius-sm: 8px;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
 }
 
 [data-theme="light"] {
   --primary: #5F7A61;
   --primary-hover: #4A634C;
+  --primary-text: #FFFFFF;
   --brand: #5F7A61;
   --brand-light: #EEF3ED;
+  --brand-border: #D4DEC9;
+  --brand-text: #3F5F45;
   --accent: #10B981;
   --accent-light: #ECFDF5;
   --bg: #F7F5F0;
-  --header-bg: rgba(255, 253, 248, 0.9);
+  --header-bg: rgba(255, 253, 248, 0.95);
   --card-bg: #FFFDF8;
+  --card-sub-bg: #F4EFE6;
   --card-hover: #F2ECE0;
   --input-bg: #FFFDF8;
   --text-main: #24211D;
@@ -39,11 +54,18 @@
   --text-sub: #94A3B8;
   --border: #DED8CD;
   --border-light: #CFC7B9;
+  --btn-secondary-bg: #FFFDF8;
+  --btn-secondary-text: #24211D;
+  --btn-secondary-border: #DED8CD;
+  --active-tab-bg: #EEF3ED;
+  --active-tab-text: #3F5F45;
+  --active-tab-border: #5F7A61;
   --radius-lg: 16px;
   --radius-md: 12px;
   --radius-sm: 8px;
   --shadow: 0 4px 12px rgba(36, 33, 29, 0.05);
   --shadow-lg: 0 12px 28px rgba(36, 33, 29, 0.12);
+  color-scheme: light;
 }
 
 * {
@@ -51,7 +73,6 @@
   margin: 0;
   padding: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 body {
@@ -59,16 +80,20 @@ body {
   color: var(--text-main);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 button {
   font-family: inherit;
   cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.1s ease;
 }
 
 input, textarea, select {
   font-family: inherit;
   color: var(--text-main);
+  background-color: var(--input-bg);
+  border-color: var(--border);
 }
 
 /* Custom Scrollbar */

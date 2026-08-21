@@ -25,7 +25,6 @@ export default function PinGate({ project, onUnlock }) {
         return
       }
 
-      // Save new PIN for this member
       const updatedMembers = project.members.map(m => 
         m.id === selectedMember.id ? { ...m, pin: newPin.trim() } : m
       )
@@ -50,14 +49,14 @@ export default function PinGate({ project, onUnlock }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: '#090D16' }}>
-      <div style={{ width: '100%', maxWidth: 380, background: '#111827', border: '1px solid #1F293D', borderRadius: 20, padding: '2rem', textAlign: 'center', boxShadow: '0 12px 30px rgba(0,0,0,0.5)' }}>
-        <div style={{ width: 56, height: 56, background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: 24 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'var(--bg)' }}>
+      <div style={{ width: '100%', maxWidth: 380, background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '2rem', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
+        <div style={{ width: 56, height: 56, background: 'var(--brand-light)', color: 'var(--brand-text)', border: '1px solid var(--brand-border)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: 24 }}>
           🔒
         </div>
 
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#F9FAFB', marginBottom: 4 }}>{project.name}</h1>
-        <p style={{ fontSize: 13, color: '#9CA3AF', marginBottom: '1.5rem' }}>Select your name & enter PIN to enter</p>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-main)', marginBottom: 4 }}>{project.name}</h1>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Select your name & enter PIN to enter</p>
 
         {error && (
           <div style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #EF4444', color: '#FCA5A5', borderRadius: 8, fontSize: 12, marginBottom: '1rem' }}>
@@ -67,11 +66,11 @@ export default function PinGate({ project, onUnlock }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'left' }}>
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Select Member</label>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Select Member</label>
             <select 
               value={selectedMemberId} 
               onChange={e => { setSelectedMemberId(e.target.value); setError(''); setPin(''); setNewPin(''); setConfirmPin(''); }}
-              style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, outline: 'none' }}
+              style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-main)', fontSize: 14, outline: 'none' }}
             >
               {project.members?.map(m => (
                 <option key={m.id} value={m.id}>
@@ -87,18 +86,18 @@ export default function PinGate({ project, onUnlock }) {
                 First time logging in. Choose a 4-8 digit PIN to protect your profile.
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Create PIN</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Create PIN</label>
                 <input 
                   type="password"
                   placeholder="4-8 digits"
                   maxLength={8}
                   value={newPin}
                   onChange={e => setNewPin(e.target.value)}
-                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid #1F293D', fontSize: 16, textAlign: 'center', letterSpacing: '0.2em', background: '#0D131F', color: '#F9FAFB', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 16, textAlign: 'center', letterSpacing: '0.2em', background: 'var(--input-bg)', color: 'var(--text-main)', outline: 'none' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Confirm PIN</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Confirm PIN</label>
                 <input 
                   type="password"
                   placeholder="Confirm PIN"
@@ -106,13 +105,13 @@ export default function PinGate({ project, onUnlock }) {
                   value={confirmPin}
                   onChange={e => setConfirmPin(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid #1F293D', fontSize: 16, textAlign: 'center', letterSpacing: '0.2em', background: '#0D131F', color: '#F9FAFB', outline: 'none' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 16, textAlign: 'center', letterSpacing: '0.2em', background: 'var(--input-bg)', color: 'var(--text-main)', outline: 'none' }}
                 />
               </div>
             </>
           ) : (
             <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Enter Your PIN</label>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Enter Your PIN</label>
               <input 
                 type="password"
                 placeholder="••••"
@@ -120,7 +119,7 @@ export default function PinGate({ project, onUnlock }) {
                 value={pin}
                 onChange={e => setPin(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleUnlock()}
-                style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid #1F293D', fontSize: 18, textAlign: 'center', letterSpacing: '0.3em', background: '#0D131F', color: '#F9FAFB', outline: 'none' }}
+                style={{ width: '100%', padding: '10px', borderRadius: 8, border: '1.5px solid var(--border)', fontSize: 18, textAlign: 'center', letterSpacing: '0.3em', background: 'var(--input-bg)', color: 'var(--text-main)', outline: 'none' }}
                 autoFocus
               />
             </div>
@@ -128,13 +127,13 @@ export default function PinGate({ project, onUnlock }) {
 
           <button 
             onClick={handleUnlock}
-            style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#090D16', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, marginTop: 4, cursor: 'pointer' }}
+            style={{ width: '100%', padding: '12px', background: 'var(--primary)', color: 'var(--primary-text)', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, marginTop: 4, cursor: 'pointer' }}
           >
             {isFirstTime ? 'Set PIN & Enter Workspace' : 'Unlock Workspace'}
           </button>
 
           {!isFirstTime && (
-            <div style={{ marginTop: 10, fontSize: 11, color: '#6B7280', textAlign: 'center', lineHeight: 1.4 }}>
+            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-sub)', textAlign: 'center', lineHeight: 1.4 }}>
               💡 Forgot your PIN? Ask project admin <strong>({project.members?.find(m => m.isAdmin)?.name || 'Admin'})</strong> to look up or reset your PIN.
             </div>
           )}
