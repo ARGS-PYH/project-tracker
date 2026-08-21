@@ -151,85 +151,85 @@ export default function CreateProjectPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F7F5F0', padding: '2rem 1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <div style={{ width: '100%', maxWidth: 580, background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 16, padding: '2.5rem', boxShadow: '0 12px 28px -20px rgba(36,33,29,0.35)' }}>
+    <div style={{ minHeight: '100vh', background: '#090D16', padding: '2rem 1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: 580, background: '#111827', border: '1px solid #1F293D', borderRadius: 20, padding: '2.5rem', boxShadow: '0 12px 30px rgba(0,0,0,0.5)' }}>
         <button 
           onClick={() => navigate('/')}
-          style={{ background: 'none', border: 'none', color: '#746E64', fontSize: 13, fontWeight: 500, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
+          style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 13, fontWeight: 500, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
         >
-          Back to home
+          ← Back to home
         </button>
 
-        <h2 style={{ fontSize: 24, fontWeight: 800, color: '#24211D', marginBottom: 6 }}>Create New Project Workspace</h2>
-        <p style={{ fontSize: 14, color: '#746E64', marginBottom: '2rem' }}>Set up your project details, deadline, and assign team PINs.</p>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: '#F9FAFB', marginBottom: 6 }}>Create New Project Workspace</h2>
+        <p style={{ fontSize: 14, color: '#9CA3AF', marginBottom: '2rem' }}>Set up your project details, deadline, and assign team PINs.</p>
 
         {error && (
-          <div style={{ padding: '12px 16px', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: 8, fontSize: 13, marginBottom: '1.5rem' }}>
+          <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #EF4444', color: '#FCA5A5', borderRadius: 8, fontSize: 13, marginBottom: '1.5rem' }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Project Title Name *</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#E5E7EB', marginBottom: 6 }}>Project Title Name *</label>
             <input 
               type="text"
-              placeholder="Example Launch"
+              placeholder="e.g. HomeOS Launch"
               value={projectName}
               onChange={e => setProjectName(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, outline: 'none', background: '#FFFDF8' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, outline: 'none' }}
               required
             />
             {projectName.trim() && (
-              <div style={{ fontSize: 12, color: '#5F7A61', marginTop: 4, fontWeight: 500 }}>
-                Project URL ID will be: <strong>/project/{slugify(projectName)}</strong>
+              <div style={{ fontSize: 12, color: '#34D399', marginTop: 6, fontWeight: 500 }}>
+                🔗 Project URL ID will be: <strong>/project/{slugify(projectName)}</strong>
               </div>
             )}
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 6 }}>Target Deadline Date *</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#E5E7EB', marginBottom: 6 }}>Target Deadline Date *</label>
             <input 
               type="date"
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
-              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, outline: 'none', background: '#FFFDF8' }}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, outline: 'none', colorScheme: 'dark' }}
               required
             />
           </div>
 
-          <div style={{ borderTop: '1px solid #DED8CD', paddingTop: '1.5rem' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#24211D', marginBottom: 12 }}>Admin Profile (You)</h3>
+          <div style={{ borderTop: '1px solid #1F293D', paddingTop: '1.5rem' }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#F9FAFB', marginBottom: 12 }}>Admin Profile (You)</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 4 }}>Your Name *</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Your Name *</label>
                 <input 
                   type="text"
                   placeholder="e.g. Alex"
                   value={adminName}
                   onChange={e => setAdminName(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, outline: 'none', background: '#FFFDF8' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, outline: 'none' }}
                   required
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 4 }}>Set Your PIN *</label>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#9CA3AF', marginBottom: 4 }}>Set Your PIN *</label>
                 <input 
                   type="password"
                   placeholder="4-8 digits"
                   maxLength={8}
                   value={adminPin}
                   onChange={e => setAdminPin(e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, outline: 'none', background: '#FFFDF8' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, outline: 'none' }}
                   required
                 />
               </div>
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid #DED8CD', paddingTop: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#334155', marginBottom: 4 }}>Add Team Members & Assign PINs</label>
-            <p style={{ fontSize: 12, color: '#746E64', marginBottom: 12 }}>Enter member name and optional PIN (or click Add Member to auto-generate a PIN).</p>
+          <div style={{ borderTop: '1px solid #1F293D', paddingTop: '1.5rem' }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#E5E7EB', marginBottom: 4 }}>Add Team Members & Assign PINs</label>
+            <p style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 12 }}>Enter member name and optional PIN (or click Add Member to auto-generate a PIN).</p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px auto', gap: 8, marginBottom: 12 }}>
               <input 
@@ -238,7 +238,7 @@ export default function CreateProjectPage() {
                 value={memberInput}
                 onChange={e => setMemberInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addMember())}
-                style={{ padding: '9px 12px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, background: '#FFFDF8' }}
+                style={{ padding: '9px 12px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, outline: 'none' }}
               />
               <input 
                 type="text"
@@ -246,28 +246,28 @@ export default function CreateProjectPage() {
                 maxLength={8}
                 value={memberPinInput}
                 onChange={e => setMemberPinInput(e.target.value)}
-                style={{ padding: '9px 10px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, textAlign: 'center', background: '#FFFDF8' }}
+                style={{ padding: '9px 10px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, textAlign: 'center', outline: 'none' }}
               />
               <button 
                 type="button"
                 onClick={addMember}
-                style={{ padding: '9px 16px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '9px 16px', background: '#10B981', color: '#090D16', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
               >
-                + Add Member
+                + Add
               </button>
             </div>
 
             {members.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10 }}>
                 {members.map(m => (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#EEF3ED', color: '#3F5F45', padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500 }}>
+                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0D131F', border: '1px solid #1F293D', color: '#F9FAFB', padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 600 }}>{m.name}</span>
-                      <span style={{ background: '#E2EBDD', color: '#3F5F45', padding: '2px 8px', borderRadius: 6, fontSize: 12, fontFamily: 'monospace' }}>
+                      <span style={{ fontWeight: 600 }}>👤 {m.name}</span>
+                      <span style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '2px 8px', borderRadius: 6, fontSize: 12, fontFamily: 'monospace' }}>
                         PIN: {m.pin}
                       </span>
                     </div>
-                    <button type="button" onClick={() => removeMember(m.id)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>x</button>
+                    <button type="button" onClick={() => removeMember(m.id)} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>✕</button>
                   </div>
                 ))}
               </div>
@@ -277,9 +277,9 @@ export default function CreateProjectPage() {
           <button 
             type="submit"
             disabled={loading}
-            style={{ width: '100%', padding: '14px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 600, fontSize: 15, marginTop: 10, cursor: 'pointer' }}
+            style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#090D16', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15, marginTop: 10, cursor: 'pointer', boxShadow: '0 4px 16px rgba(16, 185, 129, 0.35)' }}
           >
-            {loading ? 'Creating Project...' : 'Create Workspace & Launch'}
+            {loading ? 'Creating Project...' : 'Create Workspace & Launch →'}
           </button>
         </form>
       </div>

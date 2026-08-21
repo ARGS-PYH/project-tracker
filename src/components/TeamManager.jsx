@@ -76,27 +76,27 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header & Add Member Box */}
-      <div style={{ background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 16, padding: '1.5rem', boxShadow: '0 4px 12px -8px rgba(36,33,29,0.1)' }}>
+      <div style={{ background: '#111827', border: '1px solid #1F293D', borderRadius: 16, padding: '1.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: 10 }}>
           <div>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#24211D', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 8 }}>
               👥 Team & PIN Management
             </h3>
-            <p style={{ fontSize: 13, color: '#746E64', marginTop: 2 }}>
+            <p style={{ fontSize: 13, color: '#9CA3AF', marginTop: 2 }}>
               Add new members, issue PINs, and retrieve or reset PINs if a member forgets theirs.
             </p>
           </div>
 
           <button 
             onClick={() => setShowPins(!showPins)}
-            style={{ fontSize: 12, padding: '6px 12px', background: '#EEF3ED', color: '#3F5F45', border: '1px solid #D4DEC9', borderRadius: 20, fontWeight: 600, cursor: 'pointer' }}
+            style={{ fontSize: 12, padding: '6px 14px', background: 'rgba(16, 185, 129, 0.12)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 20, fontWeight: 600, cursor: 'pointer' }}
           >
             {showPins ? '🔒 Mask PINs' : '👁️ Reveal All PINs'}
           </button>
         </div>
 
         {error && (
-          <div style={{ padding: '10px 14px', background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: 8, fontSize: 13, marginBottom: '1.25rem' }}>
+          <div style={{ padding: '10px 14px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #EF4444', color: '#FCA5A5', borderRadius: 8, fontSize: 13, marginBottom: '1.25rem' }}>
             {error}
           </div>
         )}
@@ -108,7 +108,7 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
             placeholder="New member name (e.g. Sarah)"
             value={newMemberName}
             onChange={e => { setNewMemberName(e.target.value); setError(''); }}
-            style={{ padding: '10px 14px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, background: '#FFFDF8', outline: 'none' }}
+            style={{ padding: '10px 14px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, outline: 'none' }}
           />
 
           <div style={{ display: 'flex', gap: 4 }}>
@@ -118,13 +118,13 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
               maxLength={8}
               value={newMemberPin}
               onChange={e => setNewMemberPin(e.target.value)}
-              style={{ width: '100%', padding: '10px 8px', borderRadius: 8, border: '1.5px solid #CFC7B9', fontSize: 14, textAlign: 'center', background: '#FFFDF8' }}
+              style={{ width: '100%', padding: '10px 8px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 14, textAlign: 'center', outline: 'none' }}
             />
             <button 
               type="button"
               onClick={() => setNewMemberPin(generateRandomPin())}
               title="Generate random 4-digit PIN"
-              style={{ padding: '0 8px', background: '#EEF3ED', color: '#3F5F45', border: '1px solid #D4DEC9', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              style={{ padding: '0 10px', background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
             >
               ⚡
             </button>
@@ -132,7 +132,7 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
 
           <button 
             type="submit"
-            style={{ padding: '10px 18px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ padding: '10px 18px', background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: '#090D16', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             + Add Member
           </button>
@@ -140,10 +140,10 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
       </div>
 
       {/* Members List Table / Cards */}
-      <div style={{ background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 12px -8px rgba(36,33,29,0.1)' }}>
-        <div style={{ padding: '14px 18px', background: '#F7F5F0', borderBottom: '1px solid #DED8CD', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: '#24211D' }}>Team Roster ({members.length} members)</span>
-          <span style={{ fontSize: 12, color: '#746E64' }}>Admin Master Key</span>
+      <div style={{ background: '#111827', border: '1px solid #1F293D', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+        <div style={{ padding: '14px 18px', background: '#0D131F', borderBottom: '1px solid #1F293D', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: '#F9FAFB' }}>Team Roster ({members.length} members)</span>
+          <span style={{ fontSize: 12, color: '#9CA3AF' }}>Admin Master Key</span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -155,25 +155,25 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
                 key={member.id || index}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px',
-                  borderBottom: index < members.length - 1 ? '1px solid #EFEAE1' : 'none',
-                  flexWrap: 'wrap', gap: 12, background: member.isAdmin ? '#FAF8F3' : 'transparent'
+                  borderBottom: index < members.length - 1 ? '1px solid #1F293D' : 'none',
+                  flexWrap: 'wrap', gap: 12, background: member.isAdmin ? 'rgba(16, 185, 129, 0.04)' : 'transparent'
                 }}
               >
                 {/* Member Info */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 180 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: member.isAdmin ? '#5F7A61' : '#EEF3ED', color: member.isAdmin ? '#fff' : '#3F5F45', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: member.isAdmin ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)' : '#1F293D', color: member.isAdmin ? '#090D16' : '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14 }}>
                     {member.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#24211D', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: '#F9FAFB', display: 'flex', alignItems: 'center', gap: 6 }}>
                       {member.name}
                       {member.isAdmin && (
-                        <span style={{ fontSize: 10, background: '#E0EADF', color: '#2F4F35', padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
+                        <span style={{ fontSize: 10, background: 'rgba(16, 185, 129, 0.15)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
                           ADMIN 👑
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: '#94A3B8' }}>ID: {member.id}</div>
+                    <div style={{ fontSize: 11, color: '#6B7280' }}>ID: {member.id}</div>
                   </div>
                 </div>
 
@@ -187,18 +187,18 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
                         maxLength={8}
                         value={editPinValue}
                         onChange={e => setEditPinValue(e.target.value)}
-                        style={{ width: 90, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #5F7A61', fontSize: 13, textAlign: 'center', outline: 'none' }}
+                        style={{ width: 90, padding: '6px 8px', borderRadius: 6, border: '1.5px solid #10B981', background: '#0D131F', color: '#F9FAFB', fontSize: 13, textAlign: 'center', outline: 'none' }}
                         autoFocus
                       />
                       <button 
                         onClick={() => handleSaveEditedPin(member.id)}
-                        style={{ padding: '6px 10px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                        style={{ padding: '6px 12px', background: '#10B981', color: '#090D16', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                       >
                         Save
                       </button>
                       <button 
                         onClick={() => { setEditingMemberId(null); setEditPinValue(''); }}
-                        style={{ padding: '6px 8px', background: '#F1F5F9', color: '#64748B', border: '1px solid #CBD5E1', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}
+                        style={{ padding: '6px 8px', background: '#1F293D', color: '#9CA3AF', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}
                       >
                         ✕
                       </button>
@@ -206,7 +206,7 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{
-                        padding: '6px 12px', background: '#EEF3ED', color: '#2F4F35', borderRadius: 8,
+                        padding: '6px 12px', background: '#0D131F', border: '1px solid #1F293D', color: '#34D399', borderRadius: 8,
                         fontFamily: 'monospace', fontWeight: 700, fontSize: 14, letterSpacing: '0.1em'
                       }}>
                         {showPins ? (member.pin || 'No PIN') : '••••'}
@@ -215,7 +215,7 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
                       <button 
                         onClick={() => handleCopyPin(member)}
                         title="Copy PIN to clipboard"
-                        style={{ padding: '6px 10px', background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 6, fontSize: 12, cursor: 'pointer', color: copiedId === member.id ? '#059669' : '#3F5F45', fontWeight: 500 }}
+                        style={{ padding: '6px 12px', background: '#1F293D', border: '1px solid #2D3748', borderRadius: 6, fontSize: 12, cursor: 'pointer', color: copiedId === member.id ? '#34D399' : '#E5E7EB', fontWeight: 500 }}
                       >
                         {copiedId === member.id ? '✓ Copied' : '📋 Copy'}
                       </button>
@@ -223,7 +223,7 @@ export default function TeamManager({ project, onUpdateMembers, currentUser }) {
                       <button 
                         onClick={() => { setEditingMemberId(member.id); setEditPinValue(member.pin || ''); }}
                         title="Reset or Change PIN"
-                        style={{ padding: '6px 10px', background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 6, fontSize: 12, cursor: 'pointer', color: '#746E64', fontWeight: 500 }}
+                        style={{ padding: '6px 12px', background: '#1F293D', border: '1px solid #2D3748', borderRadius: 6, fontSize: 12, cursor: 'pointer', color: '#9CA3AF', fontWeight: 500 }}
                       >
                         ✏️ Reset PIN
                       </button>

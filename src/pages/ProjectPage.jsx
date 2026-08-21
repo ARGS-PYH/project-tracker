@@ -316,14 +316,14 @@ export default function ProjectPage() {
   // Project Not Found Screen
   if (notFound) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F5F0', padding: '1.5rem' }}>
-        <div style={{ width: '100%', maxWidth: 440, background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 16, padding: '2.5rem', textAlign: 'center', boxShadow: '0 12px 28px -20px rgba(36,33,29,0.35)' }}>
-          <div style={{ width: 64, height: 64, background: '#FEF2F2', color: '#EF4444', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: 32 }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#090D16', padding: '1.5rem' }}>
+        <div style={{ width: '100%', maxWidth: 440, background: '#111827', border: '1px solid #1F293D', borderRadius: 20, padding: '2.5rem', textAlign: 'center', boxShadow: '0 12px 30px rgba(0,0,0,0.5)' }}>
+          <div style={{ width: 64, height: 64, background: 'rgba(239, 68, 68, 0.15)', color: '#EF4444', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: 32 }}>
             ⚠️
           </div>
 
-          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#24211D', marginBottom: 8 }}>Project Workspace Not Found</h2>
-          <p style={{ fontSize: 13, color: '#746E64', lineHeight: 1.6, marginBottom: '1.75rem' }}>
+          <h2 style={{ fontSize: 22, fontWeight: 800, color: '#F9FAFB', marginBottom: 8 }}>Project Workspace Not Found</h2>
+          <p style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.6, marginBottom: '1.75rem' }}>
             We couldn't find any project matching <strong>"{projectId}"</strong>. Please verify the URL or try searching by project ID/title below.
           </p>
 
@@ -333,11 +333,11 @@ export default function ProjectPage() {
               placeholder="Enter Project ID or Title..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1.5px solid #CBD5E1', fontSize: 13, outline: 'none' }}
+              style={{ flex: 1, padding: '10px 12px', borderRadius: 8, border: '1.5px solid #1F293D', background: '#0D131F', color: '#F9FAFB', fontSize: 13, outline: 'none' }}
             />
             <button 
               type="submit"
-              style={{ padding: '10px 16px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              style={{ padding: '10px 16px', background: '#10B981', color: '#090D16', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
             >
               Search
             </button>
@@ -346,13 +346,13 @@ export default function ProjectPage() {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
             <button 
               onClick={() => navigate('/')}
-              style={{ padding: '10px 20px', background: '#F1F5F9', color: '#334155', border: '1px solid #CBD5E1', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              style={{ padding: '10px 20px', background: '#1F293D', color: '#F9FAFB', border: '1px solid #2D3748', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
             >
               Back to Home
             </button>
             <button 
               onClick={() => navigate('/create')}
-              style={{ padding: '10px 20px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              style={{ padding: '10px 20px', background: '#10B981', color: '#090D16', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
             >
               + Create Project
             </button>
@@ -365,7 +365,7 @@ export default function ProjectPage() {
   // Loading Screen
   if (loading && !project) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F5F0', color: '#746E64', fontSize: 14 }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#090D16', color: '#9CA3AF', fontSize: 14 }}>
         Loading project workspace...
       </div>
     )
@@ -381,20 +381,20 @@ export default function ProjectPage() {
     : sharedTasks.filter(g => (g.phase || 1) === phaseFilter)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F7F5F0' }}>
+    <div style={{ minHeight: '100vh', background: '#090D16' }}>
       {/* Header Bar */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,253,248,0.95)', borderBottom: '1px solid #DED8CD', backdropFilter: 'blur(8px)' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(17, 24, 39, 0.85)', borderBottom: '1px solid #1F293D', backdropFilter: 'blur(12px)' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', padding: '0 1.25rem', height: 60, display: 'flex', alignItems: 'center', gap: 12 }}>
           <div onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 30, height: 30, background: '#5F7A61', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 15 }}>P</div>
-            <span style={{ fontWeight: 700, fontSize: 16, color: '#24211D' }}>{project.name}</span>
+            <div style={{ width: 30, height: 30, background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#090D16', fontWeight: 800, fontSize: 15 }}>P</div>
+            <span style={{ fontWeight: 700, fontSize: 16, color: '#F9FAFB' }}>{project.name}</span>
           </div>
 
           <button 
             onClick={copyShareLink}
-            style={{ fontSize: 11, padding: '4px 10px', background: '#EEF3ED', color: '#3F5F45', border: '1px solid #D4DEC9', borderRadius: 20, fontWeight: 600, cursor: 'pointer' }}
+            style={{ fontSize: 11, padding: '4px 12px', background: 'rgba(16, 185, 129, 0.12)', color: '#34D399', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: 20, fontWeight: 600, cursor: 'pointer' }}
           >
-            {copied ? 'Link Copied!' : 'Share Link'}
+            {copied ? '✓ Link Copied!' : '🔗 Share Link'}
           </button>
 
           <div style={{ flex: 1 }} />
@@ -402,23 +402,23 @@ export default function ProjectPage() {
           <PresenceBar activeUsers={activeUsers} />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
-            <div style={{ fontSize: 12, padding: '4px 12px', background: '#EFEAE1', color: '#24211D', borderRadius: 20, fontWeight: 600 }}>
-              {currentUser.name} {currentUser.isAdmin ? '👑 (Admin)' : ''}
+            <div style={{ fontSize: 12, padding: '4px 12px', background: '#1F293D', color: '#F9FAFB', borderRadius: 20, fontWeight: 600 }}>
+              {currentUser.name} {currentUser.isAdmin ? '👑' : ''}
             </div>
 
             {activeTab === 'shared' && (
               <button 
                 onClick={() => setEditMode(!editMode)} 
-                style={{ fontSize: 11, padding: '5px 10px', background: editMode ? '#5F7A61' : '#FFFDF8', color: editMode ? '#FFFFFF' : '#746E64', border: '1px solid #CFC7B9', borderRadius: 20, fontWeight: 600, cursor: 'pointer' }}
+                style={{ fontSize: 11, padding: '5px 12px', background: editMode ? '#10B981' : '#1F293D', color: editMode ? '#090D16' : '#F9FAFB', border: '1px solid #2D3748', borderRadius: 20, fontWeight: 700, cursor: 'pointer' }}
               >
-                {editMode ? 'Done' : 'Edit Tasks'}
+                {editMode ? 'Done' : '✏️ Edit'}
               </button>
             )}
 
             <button 
               onClick={handleLogout} 
               title="Logout" 
-              style={{ fontSize: 11, padding: '5px 10px', background: 'transparent', color: '#94A3B8', border: '1px solid #CBD5E1', borderRadius: 20, fontWeight: 500, cursor: 'pointer' }}
+              style={{ fontSize: 11, padding: '5px 12px', background: 'transparent', color: '#9CA3AF', border: '1px solid #1F293D', borderRadius: 20, fontWeight: 500, cursor: 'pointer' }}
             >
               Exit
             </button>
@@ -441,9 +441,9 @@ export default function ProjectPage() {
               onClick={() => setActiveTab('shared')}
               style={{
                 padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: activeTab === 'shared' ? '1.5px solid #5F7A61' : '1px solid #DED8CD',
-                background: activeTab === 'shared' ? '#EEF3ED' : '#FFFDF8',
-                color: activeTab === 'shared' ? '#3F5F45' : '#746E64'
+                border: activeTab === 'shared' ? '1.5px solid #10B981' : '1px solid #1F293D',
+                background: activeTab === 'shared' ? 'rgba(16, 185, 129, 0.15)' : '#111827',
+                color: activeTab === 'shared' ? '#34D399' : '#9CA3AF'
               }}
             >
               👥 Team Shared Tasks
@@ -453,9 +453,9 @@ export default function ProjectPage() {
               onClick={() => setActiveTab('private')}
               style={{
                 padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: activeTab === 'private' ? '1.5px solid #5F7A61' : '1px solid #DED8CD',
-                background: activeTab === 'private' ? '#EEF3ED' : '#FFFDF8',
-                color: activeTab === 'private' ? '#3F5F45' : '#746E64'
+                border: activeTab === 'private' ? '1.5px solid #10B981' : '1px solid #1F293D',
+                background: activeTab === 'private' ? 'rgba(16, 185, 129, 0.15)' : '#111827',
+                color: activeTab === 'private' ? '#34D399' : '#9CA3AF'
               }}
             >
               🔒 My Private Tasks
@@ -466,9 +466,9 @@ export default function ProjectPage() {
                 onClick={() => setActiveTab('team')}
                 style={{
                   padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                  border: activeTab === 'team' ? '1.5px solid #5F7A61' : '1px solid #DED8CD',
-                  background: activeTab === 'team' ? '#EEF3ED' : '#FFFDF8',
-                  color: activeTab === 'team' ? '#3F5F45' : '#746E64'
+                  border: activeTab === 'team' ? '1.5px solid #10B981' : '1px solid #1F293D',
+                  background: activeTab === 'team' ? 'rgba(16, 185, 129, 0.15)' : '#111827',
+                  color: activeTab === 'team' ? '#34D399' : '#9CA3AF'
                 }}
               >
                 ⚙️ Team & PINs (Admin)
@@ -483,10 +483,10 @@ export default function ProjectPage() {
                   key={v} 
                   onClick={() => setPhaseFilter(v)}
                   style={{
-                    padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
-                    border: phaseFilter === v ? '1px solid #5F7A61' : '1px solid #DED8CD',
-                    background: phaseFilter === v ? '#5F7A61' : '#FFFDF8',
-                    color: phaseFilter === v ? '#FFFFFF' : '#746E64'
+                    padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                    border: phaseFilter === v ? '1px solid #10B981' : '1px solid #1F293D',
+                    background: phaseFilter === v ? '#10B981' : '#111827',
+                    color: phaseFilter === v ? '#090D16' : '#9CA3AF'
                   }}
                 >
                   {label}
@@ -523,8 +523,8 @@ export default function ProjectPage() {
           />
         )}
 
-        <footer style={{ textAlign: 'center', padding: '2.5rem 0 1rem', fontSize: 12, color: '#94A3B8' }}>
-          Product Lunch Tracker (PLTK) Workspace - Built for focused project execution
+        <footer style={{ borderTop: '1px solid #1F293D', textAlign: 'center', padding: '2.5rem 0 1rem', fontSize: 12, color: '#6B7280', marginTop: '2rem' }}>
+          Product Lunch Tracker (PLTK) Workspace · Built for focused project execution
         </footer>
       </main>
     </div>
