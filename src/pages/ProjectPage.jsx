@@ -8,6 +8,7 @@ import SharedTasks from '../components/SharedTasks.jsx'
 import MyTasks from '../components/MyTasks.jsx'
 import StatsGrid from '../components/StatsGrid.jsx'
 import PresenceBar from '../components/PresenceBar.jsx'
+import TeamManager from '../components/TeamManager.jsx'
 
 export default function ProjectPage() {
   const { projectId } = useParams()
@@ -30,7 +31,7 @@ export default function ProjectPage() {
   const [activeUsers, setActiveUsers] = useState([])
   const [editMode, setEditMode] = useState(false)
   const [phaseFilter, setPhaseFilter] = useState(0)
-  const [activeTab, setActiveTab] = useState('shared') // 'shared' | 'private'
+  const [activeTab, setActiveTab] = useState('shared') // 'shared' | 'private' | 'team'
   const [copied, setCopied] = useState(false)
 
   // 1. Fetch Project Details with Name / ID Lookup & Error Handling
@@ -48,13 +49,11 @@ export default function ProjectPage() {
 
     // Helper: Search local storage for matching ID, slug, or Title Name
     const findLocalProject = () => {
-      // Direct key check
       const direct = localStorage.getItem(`project_${projectId}`)
       if (direct) {
         try { return JSON.parse(direct) } catch {}
       }
 
-      // Loop through localStorage for name/slug match
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)
         if (key && key.startsWith('project_')) {
@@ -85,8 +84,16 @@ export default function ProjectPage() {
             setNotFound(false)
             setLoading(false)
             localStorage.setItem(`project_${data.id}`, JSON.stringify(data))
+
+            // Keep currentUser in sync with member updates (e.g. PIN update)
+            if (currentUser) {
+              const updatedSelf = data.members?.find(m => m.id === currentUser.id)
+              if (updatedSelf) {
+                setCurrentUser(updatedSelf)
+                sessionStorage.setItem(`taskforge_user_${projectId}`, JSON.stringify(updatedSelf))
+              }
+            }
           } else if (!localFound) {
-            // Firestore returned empty and local didn't find it
             setLoading(false)
             setNotFound(true)
           }
@@ -250,9 +257,26 @@ export default function ProjectPage() {
 
     if (isFirebaseConfigured && db) {
       try {
-        await setDoc(doc(db, 'projects', targetId, 'private', currentUser.id), { tasks: newPrivateTasks }, { merge: true })
+        await setDoc(doc(db, 'projects', targetId), { tasks: newPrivateTasks }, { merge: true })
       } catch (e) {
         console.warn('Save private tasks notice:', e)
+      }
+    }
+  }
+
+  // Update Team Members & PINs (Admin Feature)
+  const handleUpdateMembers = async (newMembers) => {
+    if (!project) return
+    const targetId = project.id
+    const updatedProject = { ...project, members: newMembers }
+    setProject(updatedProject)
+    localStorage.setItem(`project_${targetId}`, JSON.stringify(updatedProject))
+
+    if (isFirebaseConfigured && db) {
+      try {
+        await setDoc(doc(db, 'projects', targetId), { members: newMembers }, { merge: true })
+      } catch (e) {
+        console.warn('Save members update notice:', e)
       }
     }
   }
@@ -295,7 +319,7 @@ export default function ProjectPage() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F7F5F0', padding: '1.5rem' }}>
         <div style={{ width: '100%', maxWidth: 440, background: '#FFFDF8', border: '1px solid #DED8CD', borderRadius: 16, padding: '2.5rem', textAlign: 'center', boxShadow: '0 12px 28px -20px rgba(36,33,29,0.35)' }}>
           <div style={{ width: 64, height: 64, background: '#FEF2F2', color: '#EF4444', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', fontSize: 32 }}>
-            !
+            ⚠️
           </div>
 
           <h2 style={{ fontSize: 22, fontWeight: 800, color: '#24211D', marginBottom: 8 }}>Project Workspace Not Found</h2>
@@ -379,15 +403,17 @@ export default function ProjectPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 8 }}>
             <div style={{ fontSize: 12, padding: '4px 12px', background: '#EFEAE1', color: '#24211D', borderRadius: 20, fontWeight: 600 }}>
-              {currentUser.name} {currentUser.isAdmin ? '(Admin)' : ''}
+              {currentUser.name} {currentUser.isAdmin ? '👑 (Admin)' : ''}
             </div>
 
-            <button 
-              onClick={() => setEditMode(!editMode)} 
-              style={{ fontSize: 11, padding: '5px 10px', background: editMode ? '#5F7A61' : '#FFFDF8', color: editMode ? '#FFFFFF' : '#746E64', border: '1px solid #CFC7B9', borderRadius: 20, fontWeight: 600, cursor: 'pointer' }}
-            >
-              {editMode ? 'Done' : 'Edit'}
-            </button>
+            {activeTab === 'shared' && (
+              <button 
+                onClick={() => setEditMode(!editMode)} 
+                style={{ fontSize: 11, padding: '5px 10px', background: editMode ? '#5F7A61' : '#FFFDF8', color: editMode ? '#FFFFFF' : '#746E64', border: '1px solid #CFC7B9', borderRadius: 20, fontWeight: 600, cursor: 'pointer' }}
+              >
+                {editMode ? 'Done' : 'Edit Tasks'}
+              </button>
+            )}
 
             <button 
               onClick={handleLogout} 
@@ -410,7 +436,7 @@ export default function ProjectPage() {
 
         {/* Main Navigation Tabs */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button 
               onClick={() => setActiveTab('shared')}
               style={{
@@ -420,7 +446,7 @@ export default function ProjectPage() {
                 color: activeTab === 'shared' ? '#3F5F45' : '#746E64'
               }}
             >
-              Team Shared Tasks
+              👥 Team Shared Tasks
             </button>
 
             <button 
@@ -432,8 +458,22 @@ export default function ProjectPage() {
                 color: activeTab === 'private' ? '#3F5F45' : '#746E64'
               }}
             >
-              My Private Tasks
+              🔒 My Private Tasks
             </button>
+
+            {currentUser.isAdmin && (
+              <button 
+                onClick={() => setActiveTab('team')}
+                style={{
+                  padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  border: activeTab === 'team' ? '1.5px solid #5F7A61' : '1px solid #DED8CD',
+                  background: activeTab === 'team' ? '#EEF3ED' : '#FFFDF8',
+                  color: activeTab === 'team' ? '#3F5F45' : '#746E64'
+                }}
+              >
+                ⚙️ Team & PINs (Admin)
+              </button>
+            )}
           </div>
 
           {activeTab === 'shared' && (
@@ -457,7 +497,7 @@ export default function ProjectPage() {
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'shared' ? (
+        {activeTab === 'shared' && (
           <SharedTasks 
             sharedTasks={filteredSharedTasks}
             checkedState={checkedState}
@@ -466,10 +506,20 @@ export default function ProjectPage() {
             editMode={editMode}
             onSaveTasks={handleSaveSharedTasks}
           />
-        ) : (
+        )}
+
+        {activeTab === 'private' && (
           <MyTasks 
             privateTasks={privateTasks}
             onSavePrivateTasks={handleSavePrivateTasks}
+          />
+        )}
+
+        {activeTab === 'team' && currentUser.isAdmin && (
+          <TeamManager 
+            project={project}
+            currentUser={currentUser}
+            onUpdateMembers={handleUpdateMembers}
           />
         )}
 

@@ -128,10 +128,16 @@ export default function PinGate({ project, onUnlock }) {
 
           <button 
             onClick={handleUnlock}
-            style={{ width: '100%', padding: '12px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, marginTop: 4 }}
+            style={{ width: '100%', padding: '12px', background: '#5F7A61', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, marginTop: 4, cursor: 'pointer' }}
           >
             {isFirstTime ? 'Set PIN & Enter Workspace' : 'Unlock Workspace'}
           </button>
+
+          {!isFirstTime && (
+            <div style={{ marginTop: 10, fontSize: 11, color: '#94A3B8', textAlign: 'center', lineHeight: 1.4 }}>
+              💡 Forgot your PIN? Ask project admin <strong>({project.members?.find(m => m.isAdmin)?.name || 'Admin'})</strong> to look up or reset your PIN.
+            </div>
+          )}
         </div>
       </div>
     </div>
