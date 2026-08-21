@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import TaskComments from './TaskComments.jsx'
 
 const pct = (done, total) => total === 0 ? 0 : Math.round((done / total) * 100)
 
@@ -44,6 +45,16 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
   const handleDeleteTask = (gi, ii) => {
     const updated = [...sharedTasks]
     updated[gi].items.splice(ii, 1)
+    onSaveTasks(updated)
+  }
+
+  const handleAddComment = (gi, ii, comment) => {
+    const updated = [...sharedTasks]
+    const task = updated[gi].items[ii]
+    updated[gi].items[ii] = {
+      ...task,
+      comments: [...(task.comments || []), comment]
+    }
     onSaveTasks(updated)
   }
 
@@ -152,6 +163,13 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                     )}
                     {isChecked && meta && !editMode && (
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>✓ {meta.by} · {meta.at}</div>
+                    )}
+                    {!editMode && (
+                      <TaskComments
+                        comments={item.comments || []}
+                        user={user}
+                        onAddComment={(comment) => handleAddComment(gi, ii, comment)}
+                      />
                     )}
                   </div>
                   {editMode && (

@@ -261,7 +261,7 @@ export default function ProjectPage() {
 
     if (isFirebaseConfigured && db) {
       try {
-        await setDoc(doc(db, 'projects', targetId), { tasks: newPrivateTasks }, { merge: true })
+        await setDoc(doc(db, 'projects', targetId, 'private', currentUser.id), { tasks: newPrivateTasks }, { merge: true })
       } catch (e) {
         console.warn('Save private tasks notice:', e)
       }
@@ -528,6 +528,7 @@ export default function ProjectPage() {
         {activeTab === 'private' && (
           <MyTasks 
             privateTasks={privateTasks}
+            user={currentUser}
             onSavePrivateTasks={handleSavePrivateTasks}
           />
         )}

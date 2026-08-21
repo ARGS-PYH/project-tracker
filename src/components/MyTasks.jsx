@@ -1,6 +1,7 @@
 import { useState } from 'react'
+import TaskComments from './TaskComments.jsx'
 
-export default function MyTasks({ privateTasks, onSavePrivateTasks }) {
+export default function MyTasks({ privateTasks, user, onSavePrivateTasks }) {
   const [taskInput, setTaskInput] = useState('')
 
   const addTask = () => {
@@ -23,6 +24,13 @@ export default function MyTasks({ privateTasks, onSavePrivateTasks }) {
 
   const deleteTask = (id) => {
     const updated = privateTasks.filter(t => t.id !== id)
+    onSavePrivateTasks(updated)
+  }
+
+  const addComment = (id, comment) => {
+    const updated = privateTasks.map(t => (
+      t.id === id ? { ...t, comments: [...(t.comments || []), comment] } : t
+    ))
     onSavePrivateTasks(updated)
   }
 
@@ -64,25 +72,32 @@ export default function MyTasks({ privateTasks, onSavePrivateTasks }) {
           </div>
         ) : (
           privateTasks.map(t => (
-            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: t.done ? 'var(--card-sub-bg)' : 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
-              <input 
-                type="checkbox"
-                checked={t.done}
-                onChange={() => toggleTask(t.id)}
-                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--primary)' }}
+            <div key={t.id} style={{ padding: '10px 14px', background: t.done ? 'var(--card-sub-bg)' : 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input 
+                  type="checkbox"
+                  checked={t.done}
+                  onChange={() => toggleTask(t.id)}
+                  style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--primary)' }}
+                />
+                <span 
+                  onClick={() => toggleTask(t.id)}
+                  style={{ flex: 1, fontSize: 14, color: t.done ? 'var(--text-sub)' : 'var(--text-main)', textDecoration: t.done ? 'line-through' : 'none', cursor: 'pointer' }}
+                >
+                  {t.text}
+                </span>
+                <button 
+                  onClick={() => deleteTask(t.id)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer', fontSize: 14 }}
+                >
+                  ✕
+                </button>
+              </div>
+              <TaskComments
+                comments={t.comments || []}
+                user={user}
+                onAddComment={(comment) => addComment(t.id, comment)}
               />
-              <span 
-                onClick={() => toggleTask(t.id)}
-                style={{ flex: 1, fontSize: 14, color: t.done ? 'var(--text-sub)' : 'var(--text-main)', textDecoration: t.done ? 'line-through' : 'none', cursor: 'pointer' }}
-              >
-                {t.text}
-              </span>
-              <button 
-                onClick={() => deleteTask(t.id)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-sub)', cursor: 'pointer', fontSize: 14 }}
-              >
-                ✕
-              </button>
             </div>
           ))
         )}
