@@ -522,6 +522,8 @@ export default function ProjectPage() {
             user={currentUser}
             editMode={editMode}
             onSaveTasks={handleSaveSharedTasks}
+            members={project.members}
+            projectName={project.name}
           />
         )}
 

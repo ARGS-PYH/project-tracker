@@ -1,6 +1,6 @@
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
+import notifyAssignHandler from './api/notify/assign.js'
 
 dotenv.config()
 
@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 5000
 
 app.use(cors())
 app.use(express.json())
+
+app.post('/api/notify/assign', (req, res) => notifyAssignHandler(req, res))
 
 // Health check endpoint
 app.get('/health', (req, res) => {

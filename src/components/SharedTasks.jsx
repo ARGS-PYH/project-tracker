@@ -12,7 +12,53 @@ function Bar({ done, total, height = 6 }) {
   )
 }
 
-export default function SharedTasks({ sharedTasks, checkedState, onToggle, user, editMode, onSaveTasks }) {
+function AssignButton({ gi, ii, teamMembers, onAssign }) {
+  const [open, setOpen] = useState(false)
+
+  if (!teamMembers || teamMembers.length === 0) return null
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        title="Assign task"
+        style={{
+          fontSize: 11, padding: '3px 9px', borderRadius: 6,
+          border: '1px solid var(--border)', background: 'var(--card-bg)',
+          color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600
+        }}
+      >
+        📌 Assign
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', right: 0, top: '100%', marginTop: 4,
+          background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 8,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 100,
+          minWidth: 160, overflow: 'hidden'
+        }}>
+          {teamMembers.map(m => (
+            <button
+              key={m.id || m.name}
+              onClick={() => { onAssign(gi, ii, m.name, m.email); setOpen(false) }}
+              style={{
+                display: 'block', width: '100%', padding: '8px 12px',
+                fontSize: 12, border: 'none', background: 'transparent',
+                color: 'var(--text-main)', cursor: 'pointer', textAlign: 'left', fontWeight: 500
+              }}
+              onMouseEnter={e => e.target.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => e.target.style.background = 'transparent'}
+            >
+              👤 {m.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default function SharedTasks({ sharedTasks, checkedState, onToggle, user, editMode, onSaveTasks, members = [], projectName = '' }) {
   const handleUpdateGroup = (gi, field, value) => {
     const updated = [...sharedTasks]
     updated[gi] = { ...updated[gi], [field]: value }
@@ -40,6 +86,34 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
     const updated = [...sharedTasks]
     updated[gi].items[ii].text = text
     onSaveTasks(updated)
+  }
+
+  const handleAssignTask = (gi, ii, assigneeName, assigneeEmail = '') => {
+    const updated = [...sharedTasks]
+    const task = updated[gi].items[ii]
+    updated[gi].items[ii] = {
+      ...task,
+      assignedTo: assigneeName || null,
+      assignedAt: assigneeName ? new Date().toISOString() : null,
+      assignedBy: assigneeName ? user?.name : null
+    }
+    onSaveTasks(updated)
+
+    if (assigneeName) {
+      const groupTitle = updated[gi]?.title || 'Task Group'
+      fetch('/api/notify/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assigneeName,
+          assigneeEmail,
+          taskText: task.text,
+          groupTitle,
+          assignedBy: user?.name || 'Team Member',
+          projectName
+        })
+      }).catch(err => console.warn('Email notification failed:', err))
+    }
   }
 
   const handleDeleteTask = (gi, ii) => {
@@ -118,7 +192,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
               {editMode ? (
                 <button onClick={() => handleDeleteGroup(gi)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 4, fontSize: 14 }}>🗑️</button>
               ) : (
-                <span style={{ fontSize: 12, color: allDone ? 'var(--brand-text)' : 'var(--text-muted)', fontWeight: allDone ? 700 : 500 }}>
+                <span style={{ fontSize: 12, color: allDone ? 'var(--brand-text)' : 'var(--text-muted)', fontWeight: 700 }}>
                   {doneCount}/{items.length}
                 </span>
               )}
@@ -161,6 +235,20 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                         {item.text}
                       </span>
                     )}
+                    
+                    {/* Assignment Badge */}
+                    {item.assignedTo && !editMode && (
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, marginLeft: 0 }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 600, padding: '2px 9px', borderRadius: 12,
+                          background: '#EEF2FF', color: '#4F46E5', border: '1px solid #C7D2FE',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          👤 {item.assignedTo}
+                        </span>
+                      </div>
+                    )}
+
                     {isChecked && meta && !editMode && (
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>✓ {meta.by} · {meta.at}</div>
                     )}
@@ -172,6 +260,39 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                       />
                     )}
                   </div>
+                  
+                  {/* Assign dropdown (edit mode) */}
+                  {editMode && (
+                    <select
+                      value={item.assignedTo || ''}
+                      onChange={e => {
+                        const m = members.find(mem => mem.name === e.target.value)
+                        handleAssignTask(gi, ii, e.target.value || null, m?.email || '')
+                      }}
+                      style={{
+                        fontSize: 11, padding: '4px 8px', borderRadius: 6,
+                        border: '1px solid var(--border)', background: item.assignedTo ? '#EEF2FF' : 'var(--input-bg)',
+                        color: item.assignedTo ? '#4F46E5' : 'var(--text-muted)', cursor: 'pointer',
+                        maxWidth: 130
+                      }}
+                    >
+                      <option value="">Assign to...</option>
+                      {members.map(m => (
+                        <option key={m.id || m.name} value={m.name}>{m.name}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  {/* Quick Assign button (view mode) */}
+                  {!editMode && !item.assignedTo && (
+                    <AssignButton
+                      gi={gi}
+                      ii={ii}
+                      teamMembers={members}
+                      onAssign={(gIdx, iIdx, name, email) => handleAssignTask(gIdx, iIdx, name, email)}
+                    />
+                  )}
+
                   {editMode && (
                     <button onClick={() => handleDeleteTask(gi, ii)} style={{ color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>✕</button>
                   )}
