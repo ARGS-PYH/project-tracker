@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import TaskComments from './TaskComments.jsx'
+import AddTaskModal from './AddTaskModal.jsx'
 
 const pct = (done, total) => total === 0 ? 0 : Math.round((done / total) * 100)
 
@@ -59,6 +60,9 @@ function AssignButton({ gi, ii, teamMembers, onAssign }) {
 }
 
 export default function SharedTasks({ sharedTasks, checkedState, onToggle, user, editMode, onSaveTasks, members = [], projectName = '' }) {
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false)
+  const [activeTaskImageModal, setActiveTaskImageModal] = useState(null)
+
   const handleUpdateGroup = (gi, field, value) => {
     const updated = [...sharedTasks]
     updated[gi] = { ...updated[gi], [field]: value }
@@ -82,10 +86,66 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
     onSaveTasks(updated)
   }
 
-  const handleUpdateTask = (gi, ii, text) => {
+  const handleCreateStandaloneTask = ({ groupId, text, assignedTo, assignedEmail, imageUrl }) => {
     const updated = [...sharedTasks]
-    updated[gi].items[ii].text = text
+    let gi = updated.findIndex(g => g.id === groupId)
+    if (gi === -1) gi = 0
+
+    if (!updated[gi]) return
+
+    const newTask = {
+      id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      text,
+      assignedTo: assignedTo || null,
+      assignedAt: assignedTo ? new Date().toISOString() : null,
+      assignedBy: assignedTo ? user?.name : null,
+      imageUrl: imageUrl || null
+    }
+
+    updated[gi].items = [...(updated[gi].items || []), newTask]
     onSaveTasks(updated)
+
+    if (assignedTo) {
+      const groupTitle = updated[gi]?.title || 'Task Group'
+      const apiBase = import.meta.env.VITE_API_URL || ''
+      const endpoint = `${apiBase}/api/notify/assign`
+
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assigneeName: assignedTo,
+          assigneeEmail: assignedEmail || '',
+          taskText: text,
+          groupTitle,
+          assignedBy: user?.name || 'Team Member',
+          projectName
+        })
+      }).catch(err => console.warn('Email notification failed:', err))
+    }
+  }
+
+  const handleUpdateTask = (gi, ii, field, value) => {
+    const updated = [...sharedTasks]
+    if (typeof field === 'string') {
+      updated[gi].items[ii][field] = value
+    } else {
+      updated[gi].items[ii].text = field
+    }
+    onSaveTasks(updated)
+  }
+
+  const handleTaskImageUpload = (gi, ii, file) => {
+    if (!file) return
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Please select an image under 3MB.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      handleUpdateTask(gi, ii, 'imageUrl', e.target.result)
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleAssignTask = (gi, ii, assigneeName, assigneeEmail = '') => {
@@ -147,6 +207,27 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Standalone Add Task Button Bar */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        background: 'var(--card-bg)', border: '1px solid var(--border)',
+        borderRadius: 14, padding: '12px 18px', boxShadow: 'var(--shadow)'
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          📋 Tasks Overview
+        </div>
+        <button
+          onClick={() => setShowAddTaskModal(true)}
+          style={{
+            padding: '8px 16px', background: '#10B981', color: '#090D16',
+            border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
+          }}
+        >
+          ➕ Add Task
+        </button>
+      </div>
+
       {sharedTasks.map((group, gi) => {
         const items = group.items || []
         const doneCount = items.filter(item => checkedState[item.id]).length
@@ -225,11 +306,36 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                   )}
                   <div style={{ flex: 1 }}>
                     {editMode ? (
-                      <textarea 
-                        value={item.text} 
-                        onChange={e => handleUpdateTask(gi, ii, e.target.value)} 
-                        style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-main)', fontSize: 13, minHeight: 36, outline: 'none' }}
-                      />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <textarea 
+                          value={item.text} 
+                          onChange={e => handleUpdateTask(gi, ii, 'text', e.target.value)} 
+                          style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-main)', fontSize: 13, minHeight: 36, outline: 'none' }}
+                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id={`taskImage_${gi}_${ii}`}
+                            onChange={e => handleTaskImageUpload(gi, ii, e.target.files?.[0])}
+                            style={{ display: 'none' }}
+                          />
+                          <label
+                            htmlFor={`taskImage_${gi}_${ii}`}
+                            style={{ fontSize: 11, color: 'var(--brand-text)', cursor: 'pointer', background: 'var(--brand-light)', padding: '3px 8px', borderRadius: 4, border: '1px solid var(--brand-border)', fontWeight: 600 }}
+                          >
+                            🖼️ {item.imageUrl ? 'Change Image' : 'Attach Image'}
+                          </label>
+                          {item.imageUrl && (
+                            <button
+                              onClick={() => handleUpdateTask(gi, ii, 'imageUrl', null)}
+                              style={{ fontSize: 11, color: '#EF4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                            >
+                              Remove Image
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     ) : (
                       <span 
                         onClick={() => onToggle(item.id)}
@@ -237,6 +343,22 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                       >
                         {item.text}
                       </span>
+                    )}
+
+                    {/* Attached Task Image Preview */}
+                    {item.imageUrl && !editMode && (
+                      <div style={{ marginTop: 6 }}>
+                        <img
+                          src={item.imageUrl}
+                          alt="Task attachment"
+                          onClick={() => setActiveTaskImageModal(item.imageUrl)}
+                          style={{
+                            maxHeight: 140, maxWidth: '100%', borderRadius: 8,
+                            border: '1px solid var(--border)', cursor: 'pointer',
+                            objectFit: 'cover', marginTop: 4
+                          }}
+                        />
+                      </div>
                     )}
                     
                     {/* Assignment Badge */}
@@ -255,6 +377,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                     {isChecked && meta && !editMode && (
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>✓ {meta.by} · {meta.at}</div>
                     )}
+
                     {!editMode && (
                       <TaskComments
                         comments={item.comments || []}
@@ -316,6 +439,35 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
         <button onClick={handleAddGroup} style={{ padding: '14px', border: '1.5px dashed var(--border)', borderRadius: 14, background: 'var(--card-bg)', color: 'var(--text-muted)', cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
           + Add New Phase / Group
         </button>
+      )}
+
+      {/* Standalone Add Task Modal */}
+      {showAddTaskModal && (
+        <AddTaskModal
+          sharedTasks={sharedTasks}
+          members={members}
+          user={user}
+          onAddTask={handleCreateStandaloneTask}
+          onClose={() => setShowAddTaskModal(false)}
+        />
+      )}
+
+      {/* Image Lightbox Modal */}
+      {activeTaskImageModal && (
+        <div
+          onClick={() => setActiveTaskImageModal(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 2000,
+            background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+          }}
+        >
+          <img
+            src={activeTaskImageModal}
+            alt="Full size task attachment"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10, objectFit: 'contain' }}
+          />
+        </div>
       )}
     </div>
   )
