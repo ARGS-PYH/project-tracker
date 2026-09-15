@@ -11,6 +11,7 @@ import StatsGrid from '../components/StatsGrid.jsx'
 import PresenceBar from '../components/PresenceBar.jsx'
 import TeamManager from '../components/TeamManager.jsx'
 import ThemeToggle from '../components/ThemeToggle.jsx'
+import EmailModal from '../components/EmailModal.jsx'
 
 export default function ProjectPage() {
   const { projectId } = useParams()
@@ -37,6 +38,7 @@ export default function ProjectPage() {
   const [phaseFilter, setPhaseFilter] = useState(0)
   const [activeTab, setActiveTab] = useState('shared') // 'shared' | 'private' | 'team'
   const [copied, setCopied] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
 
   // 1. Fetch Project Details with Name / ID Lookup & Error Handling
   useEffect(() => {
@@ -285,6 +287,29 @@ export default function ProjectPage() {
     }
   }
 
+  useEffect(() => {
+    if (authed && currentUser && !currentUser.email) {
+      const dismissed = sessionStorage.getItem(`email_prompt_dismissed_${currentUser.id}`)
+      if (!dismissed) {
+        setShowEmailModal(true)
+      }
+    }
+  }, [authed, currentUser])
+
+  const handleSaveEmail = async (email) => {
+    if (!currentUser || !project) return
+    const updatedUser = { ...currentUser, email }
+    setCurrentUser(updatedUser)
+    const targetId = project.id || projectId
+    sessionStorage.setItem(`taskforge_user_${targetId}`, JSON.stringify(updatedUser))
+
+    const updatedMembers = (project.members || []).map(m => 
+      m.id === currentUser.id ? { ...m, email } : m
+    )
+
+    await handleUpdateMembers(updatedMembers)
+  }
+
   const handleUnlock = (user) => {
     const targetId = project?.id || projectId
     sessionStorage.setItem(`taskforge_auth_${targetId}`, '1')
@@ -423,6 +448,20 @@ export default function ProjectPage() {
               {currentUser.name} {currentUser.isAdmin ? '👑' : ''}
             </div>
 
+            <button
+              onClick={() => setShowEmailModal(true)}
+              title="Set Notification Email"
+              style={{
+                fontSize: 11, padding: '5px 12px',
+                background: currentUser.email ? (isDark ? 'rgba(16, 185, 129, 0.12)' : '#EEF3ED') : 'rgba(239, 68, 68, 0.15)',
+                color: currentUser.email ? (isDark ? '#34D399' : '#3F5F45') : '#EF4444',
+                border: currentUser.email ? (isDark ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid #D4DEC9') : '1px solid #EF4444',
+                borderRadius: 20, fontWeight: 600, cursor: 'pointer'
+              }}
+            >
+              ✉️ {currentUser.email ? 'Email Set' : 'Set Email'}
+            </button>
+
             {activeTab === 'shared' && (
               <button 
                 onClick={() => setEditMode(!editMode)} 
@@ -547,6 +586,17 @@ export default function ProjectPage() {
           Product Lunch Tracker (PLTK) Workspace · Built for focused project execution
         </footer>
       </main>
+
+      {showEmailModal && currentUser && (
+        <EmailModal
+          user={currentUser}
+          onSaveEmail={handleSaveEmail}
+          onClose={() => {
+            sessionStorage.setItem(`email_prompt_dismissed_${currentUser.id}`, '1')
+            setShowEmailModal(false)
+          }}
+        />
+      )}
     </div>
   )
 }
