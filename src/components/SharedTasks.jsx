@@ -101,7 +101,10 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
 
     if (assigneeName) {
       const groupTitle = updated[gi]?.title || 'Task Group'
-      fetch('/api/notify/assign', {
+      const apiBase = import.meta.env.VITE_API_URL || ''
+      const endpoint = `${apiBase}/api/notify/assign`
+
+      fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
