@@ -5,7 +5,7 @@ const formatCommentTime = () => {
   return now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 }
 
-export default function TaskComments({ comments = [], user, onAddComment }) {
+export default function TaskComments({ comments = [], user, onAddComment, onDeleteComment, onDeleteCommentImage }) {
   const [commentText, setCommentText] = useState('')
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
@@ -48,41 +48,77 @@ export default function TaskComments({ comments = [], user, onAddComment }) {
     <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
       {comments.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {comments.map(comment => (
-            <div
-              key={comment.id}
-              style={{
-                padding: '8px 10px',
-                background: 'var(--card-sub-bg)',
-                border: '1px solid var(--border)',
-                borderRadius: 8
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 3 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-main)' }}>{comment.by || 'Team member'}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-sub)', whiteSpace: 'nowrap' }}>{comment.at || ''}</span>
+          {comments.map(comment => {
+            const isOwnerOrAdmin = user && (user.isAdmin || user.name === comment.by || user.id === comment.memberId)
+
+            return (
+              <div
+                key={comment.id}
+                style={{
+                  padding: '8px 10px',
+                  background: 'var(--card-sub-bg)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  position: 'relative'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 3 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-main)' }}>{comment.by || 'Team member'}</span>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 10, color: 'var(--text-sub)', whiteSpace: 'nowrap' }}>{comment.at || ''}</span>
+                    {isOwnerOrAdmin && onDeleteComment && (
+                      <button
+                        onClick={() => onDeleteComment(comment.id)}
+                        title="Delete comment"
+                        style={{
+                          background: 'none', border: 'none', color: '#EF4444',
+                          cursor: 'pointer', fontSize: 11, padding: '0 2px'
+                        }}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {comment.text && (
+                  <div style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>
+                    {comment.text}
+                  </div>
+                )}
+
+                {comment.imageUrl && (
+                  <div style={{ marginTop: 6, position: 'relative', display: 'inline-block' }}>
+                    <img
+                      src={comment.imageUrl}
+                      alt="Comment attachment"
+                      onClick={() => setActiveImageModal(comment.imageUrl)}
+                      style={{
+                        maxHeight: 120, maxWidth: '100%', borderRadius: 6,
+                        border: '1px solid var(--border)', cursor: 'pointer',
+                        objectFit: 'cover'
+                      }}
+                    />
+                    {isOwnerOrAdmin && onDeleteCommentImage && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteCommentImage(comment.id)}
+                        title="Delete image attachment"
+                        style={{
+                          position: 'absolute', top: 4, right: 4, background: 'rgba(239, 68, 68, 0.9)',
+                          color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px',
+                          fontSize: 10, cursor: 'pointer', fontWeight: 600
+                        }}
+                      >
+                        🗑️ Remove Image
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
-              {comment.text && (
-                <div style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>
-                  {comment.text}
-                </div>
-              )}
-              {comment.imageUrl && (
-                <div style={{ marginTop: 6 }}>
-                  <img
-                    src={comment.imageUrl}
-                    alt="Comment attachment"
-                    onClick={() => setActiveImageModal(comment.imageUrl)}
-                    style={{
-                      maxHeight: 120, maxWidth: '100%', borderRadius: 6,
-                      border: '1px solid var(--border)', cursor: 'pointer',
-                      objectFit: 'cover'
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

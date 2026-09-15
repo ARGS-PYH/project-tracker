@@ -148,6 +148,11 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
     reader.readAsDataURL(file)
   }
 
+  const handleDeleteTaskImage = (gi, ii) => {
+    if (!window.confirm('Remove image attachment from task?')) return
+    handleUpdateTask(gi, ii, 'imageUrl', null)
+  }
+
   const handleAssignTask = (gi, ii, assigneeName, assigneeEmail = '') => {
     const updated = [...sharedTasks]
     const task = updated[gi].items[ii]
@@ -191,6 +196,28 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
     updated[gi].items[ii] = {
       ...task,
       comments: [...(task.comments || []), comment]
+    }
+    onSaveTasks(updated)
+  }
+
+  const handleDeleteComment = (gi, ii, commentId) => {
+    if (!window.confirm('Delete this comment?')) return
+    const updated = [...sharedTasks]
+    const task = updated[gi].items[ii]
+    updated[gi].items[ii] = {
+      ...task,
+      comments: (task.comments || []).filter(c => c.id !== commentId)
+    }
+    onSaveTasks(updated)
+  }
+
+  const handleDeleteCommentImage = (gi, ii, commentId) => {
+    if (!window.confirm('Remove image attachment from comment?')) return
+    const updated = [...sharedTasks]
+    const task = updated[gi].items[ii]
+    updated[gi].items[ii] = {
+      ...task,
+      comments: (task.comments || []).map(c => c.id === commentId ? { ...c, imageUrl: null } : c)
     }
     onSaveTasks(updated)
   }
@@ -347,7 +374,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
 
                     {/* Attached Task Image Preview */}
                     {item.imageUrl && !editMode && (
-                      <div style={{ marginTop: 6 }}>
+                      <div style={{ marginTop: 6, position: 'relative', display: 'inline-block' }}>
                         <img
                           src={item.imageUrl}
                           alt="Task attachment"
@@ -358,6 +385,17 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                             objectFit: 'cover', marginTop: 4
                           }}
                         />
+                        <button
+                          onClick={() => handleDeleteTaskImage(gi, ii)}
+                          title="Delete task image attachment"
+                          style={{
+                            position: 'absolute', top: 8, right: 6, background: 'rgba(239, 68, 68, 0.9)',
+                            color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px',
+                            fontSize: 10, cursor: 'pointer', fontWeight: 600
+                          }}
+                        >
+                          🗑️ Remove Image
+                        </button>
                       </div>
                     )}
                     
@@ -383,6 +421,8 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                         comments={item.comments || []}
                         user={user}
                         onAddComment={(comment) => handleAddComment(gi, ii, comment)}
+                        onDeleteComment={(commentId) => handleDeleteComment(gi, ii, commentId)}
+                        onDeleteCommentImage={(commentId) => handleDeleteCommentImage(gi, ii, commentId)}
                       />
                     )}
                   </div>
