@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import notifyAssignHandler from './api/notify/assign.js'
+import notifyCompletedHandler from './api/notify/completed.js'
 
 dotenv.config()
 
@@ -12,6 +13,7 @@ app.use(cors())
 app.use(express.json())
 
 app.post('/api/notify/assign', (req, res) => notifyAssignHandler(req, res))
+app.post('/api/notify/completed', (req, res) => notifyCompletedHandler(req, res))
 
 // Health check endpoint
 app.get('/health', (req, res) => {

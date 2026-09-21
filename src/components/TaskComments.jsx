@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 
 const formatCommentTime = () => {
   const now = new Date()
@@ -10,6 +10,7 @@ export default function TaskComments({ comments = [], user, onAddComment, onDele
   const [image, setImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [activeImageModal, setActiveImageModal] = useState(null)
+  const imageInputId = useId()
 
   const handleImageChange = (e) => {
     const file = e.target.files?.[0]
@@ -167,12 +168,12 @@ export default function TaskComments({ comments = [], user, onAddComment, onDele
           <input
             type="file"
             accept="image/*"
-            id="commentImageInput"
+            id={imageInputId}
             onChange={handleImageChange}
             style={{ display: 'none' }}
           />
           <label
-            htmlFor="commentImageInput"
+            htmlFor={imageInputId}
             title="Attach Image"
             style={{
               padding: '8px 10px',
@@ -223,6 +224,7 @@ export default function TaskComments({ comments = [], user, onAddComment, onDele
           <img
             src={activeImageModal}
             alt="Full size view"
+            onClick={e => e.stopPropagation()}
             style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10, objectFit: 'contain' }}
           />
         </div>

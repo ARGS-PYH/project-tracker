@@ -63,6 +63,20 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
   const [showAddTaskModal, setShowAddTaskModal] = useState(false)
   const [activeTaskImageModal, setActiveTaskImageModal] = useState(null)
 
+  const postNotification = (path, payload) => {
+    const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
+    if (!apiBase) {
+      console.warn('Email notification skipped: VITE_API_URL is not configured')
+      return
+    }
+
+    fetch(`${apiBase}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(err => console.warn('Email notification failed:', err))
+  }
+
   const handleUpdateGroup = (gi, field, value) => {
     const updated = [...sharedTasks]
     updated[gi] = { ...updated[gi], [field]: value }
@@ -107,21 +121,14 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
 
     if (assignedTo) {
       const groupTitle = updated[gi]?.title || 'Task Group'
-      const apiBase = import.meta.env.VITE_API_URL || ''
-      const endpoint = `${apiBase}/api/notify/assign`
-
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assigneeName: assignedTo,
-          assigneeEmail: assignedEmail || '',
-          taskText: text,
-          groupTitle,
-          assignedBy: user?.name || 'Team Member',
-          projectName
-        })
-      }).catch(err => console.warn('Email notification failed:', err))
+      postNotification('/api/notify/assign', {
+        assigneeName: assignedTo,
+        assigneeEmail: assignedEmail || '',
+        taskText: text,
+        groupTitle,
+        assignedBy: user?.name || 'Team Member',
+        projectName
+      })
     }
   }
 
@@ -166,22 +173,32 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
 
     if (assigneeName) {
       const groupTitle = updated[gi]?.title || 'Task Group'
-      const apiBase = import.meta.env.VITE_API_URL || ''
-      const endpoint = `${apiBase}/api/notify/assign`
-
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assigneeName,
-          assigneeEmail,
-          taskText: task.text,
-          groupTitle,
-          assignedBy: user?.name || 'Team Member',
-          projectName
-        })
-      }).catch(err => console.warn('Email notification failed:', err))
+      postNotification('/api/notify/assign', {
+        assigneeName,
+        assigneeEmail,
+        taskText: task.text,
+        groupTitle,
+        assignedBy: user?.name || 'Team Member',
+        projectName
+      })
     }
+  }
+
+  const handleToggleTask = (gi, ii, item, group) => {
+    const willComplete = !checkedState[item.id]
+    onToggle(item.id)
+
+    if (!willComplete || !item.assignedTo) return
+
+    const member = members.find(m => m.name === item.assignedTo)
+    postNotification('/api/notify/completed', {
+      assigneeName: item.assignedTo,
+      assigneeEmail: member?.email || '',
+      taskText: item.text,
+      groupTitle: group?.title || 'Task Group',
+      completedBy: user?.name || 'Team Member',
+      projectName
+    })
   }
 
   const handleDeleteTask = (gi, ii) => {
@@ -327,7 +344,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                     <input 
                       type="checkbox" 
                       checked={isChecked} 
-                      onChange={() => onToggle(item.id)} 
+                      onChange={() => handleToggleTask(gi, ii, item, group)} 
                       style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--primary)' }} 
                     />
                   )}
@@ -365,7 +382,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
                       </div>
                     ) : (
                       <span 
-                        onClick={() => onToggle(item.id)}
+                        onClick={() => handleToggleTask(gi, ii, item, group)}
                         style={{ fontSize: 14, lineHeight: 1.5, color: isChecked ? 'var(--text-sub)' : 'var(--text-main)', textDecoration: isChecked ? 'line-through' : 'none', cursor: 'pointer' }}
                       >
                         {item.text}
@@ -505,6 +522,7 @@ export default function SharedTasks({ sharedTasks, checkedState, onToggle, user,
           <img
             src={activeTaskImageModal}
             alt="Full size task attachment"
+            onClick={e => e.stopPropagation()}
             style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 10, objectFit: 'contain' }}
           />
         </div>
