@@ -174,6 +174,14 @@ export function MyTasksPage() {
   const updateStatus = async (task, status) => {
     setActionError('')
     setNotice('')
+    if (status === 'done' && task.subtasks?.some(item => !item.complete)) {
+      setActionError('Complete all subtasks before marking this task as done.')
+      return
+    }
+    if (status === 'done' && (task.dependsOn || []).some(id => tasks.find(item => item.projectId === task.projectId && item.id === id)?.status !== 'done')) {
+      setActionError('Complete the prerequisite tasks before marking this task as done.')
+      return
+    }
     try {
       await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', task.projectId, 'tasks', task.id), {
         status,
