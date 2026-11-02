@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
 import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
@@ -161,7 +161,7 @@ export function WorkspaceProvider({ children }) {
   }
 
   const selectedOrganisation = organisations.find(item => item.id === selectedOrgId) || null
-  const value = useMemo(() => ({
+  const value = {
     organisations,
     selectedOrgId,
     setSelectedOrgId,
@@ -173,7 +173,7 @@ export function WorkspaceProvider({ children }) {
     clearError: () => setError(''),
     createOrganisation,
     createLaunch
-  }), [organisations, selectedOrgId, selectedOrganisation, projects, organisationLoading, projectsLoading, error])
+  }
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>
 }
