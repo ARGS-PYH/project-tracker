@@ -40,7 +40,6 @@ function V2Routes() {
     <Routes>
       <Route path="login" element={<AuthPage mode="login"/>}/>
       <Route path="signup" element={<AuthPage mode="signup"/>}/>
-      <Route path="invite/:orgId/:inviteId" element={<InviteAcceptancePage/>}/>
       <Route element={<RequireAuth/>}>
         <Route element={<ProtectedWorkspace/>}>
           <Route index element={<Navigate to="/app/overview" replace/>}/>
@@ -64,4 +63,12 @@ function V2Routes() {
 
 export default function V2App() {
   return <AuthProvider><V2Routes/></AuthProvider>
+}
+
+export function V2InvitationApp() {
+  return (
+    <AuthProvider>
+      <InviteAcceptancePage/>
+    </AuthProvider>
+  )
 }
