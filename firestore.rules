@@ -284,13 +284,15 @@ service cloud.firestore {
               'task_created',
               'task_updated',
               'task_status_changed',
+              'task_deleted',
               'milestone_created',
               'milestone_status_changed',
               'milestone_updated',
               'launch_status_changed',
               'comment_added',
               'file_uploaded',
-              'readiness_updated'
+              'readiness_updated',
+              'teams_assigned'
             ]
             && request.resource.data.createdAt == request.time;
           allow update, delete: if false;
