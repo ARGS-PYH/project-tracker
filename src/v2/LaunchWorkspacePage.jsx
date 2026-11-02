@@ -3,7 +3,9 @@ import { Link, NavLink, useParams } from 'react-router-dom'
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   updateDoc,
@@ -82,7 +84,7 @@ function StatusPill({ value }) {
   return <span className={'v2-task-status status-' + status.value}>{status.label}</span>
 }
 
-function TaskRow({ task, onStatusChange, onEdit, onOpenComments, readOnly = false }) {
+function TaskRow({ task, onStatusChange, onEdit, onOpenComments, onDelete, canManage = false, readOnly = false }) {
   return (
     <div className="v2-task-row">
       <div className="v2-task-main">
@@ -100,6 +102,7 @@ function TaskRow({ task, onStatusChange, onEdit, onOpenComments, readOnly = fals
         </select>
         <button type="button" className="v2-text-button" onClick={() => onOpenComments(task)}>Discussion</button>
         {!readOnly && <button type="button" className="v2-text-button" onClick={() => onEdit(task)}>Edit</button>}
+        {canManage && <button type="button" className="v2-text-button v2-danger-text" onClick={() => onDelete(task)}>Delete</button>}
       </div>
     </div>
   )
@@ -230,6 +233,8 @@ export default function LaunchWorkspacePage() {
   const [activeTask, setActiveTask] = useState(null)
   const [files, setFiles] = useState([])
   const [activity, setActivity] = useState([])
+  const [orgTeams, setOrgTeams] = useState([])
+  const [draggingTaskId, setDraggingTaskId] = useState('')
   const [readinessBusy, setReadinessBusy] = useState(false)
   const [memberToAdd, setMemberToAdd] = useState('')
   const [roleToAssign, setRoleToAssign] = useState('contributor')
@@ -252,6 +257,7 @@ export default function LaunchWorkspacePage() {
     setMilestones([])
     setProjectMembers([])
     setOrgMembers([])
+    setOrgTeams([])
     setFiles([])
     setActivity([])
     setActiveTask(null)
@@ -316,12 +322,23 @@ export default function LaunchWorkspacePage() {
       })
     } else {
       setOrgMembers([])
+      setOrgTeams([])
+    }
+    let unsubOrgTeams = () => {}
+    if (selectedOrganisation?.role !== 'guest') {
+      unsubOrgTeams = onSnapshot(collection(db, 'organisations', selectedOrgId, 'teams'), snapshot => {
+        setOrgTeams(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a,b) => (a.name || '').localeCompare(b.name || '')))
+      }, () => {
+        setOrgTeams([])
+        setError('Organisation teams could not be loaded.')
+      })
     }
     return () => {
       unsubTasks()
       unsubMilestones()
       unsubProjectMembers()
       unsubOrgMembers()
+      unsubOrgTeams()
       unsubFiles()
       unsubActivity()
     }
@@ -415,6 +432,47 @@ export default function LaunchWorkspacePage() {
       setError('Project access could not be removed. Please try again.')
     } finally {
       setTeamBusy(false)
+    }
+  }
+
+  const deleteTask = async task => {
+    if (!canManageTeam || !task?.id || !window.confirm('Delete "' + task.title + '" and its discussion? This cannot be undone.')) return
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const comments = await getDocs(collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', task.id, 'comments'))
+      for (let index = 0; index < comments.docs.length; index += 400) {
+        const batch = writeBatch(db)
+        comments.docs.slice(index, index + 400).forEach(item => batch.delete(item.ref))
+        await batch.commit()
+      }
+      await deleteDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', task.id))
+      await recordActivity('task_deleted', 'Deleted task "' + task.title + '".', task.id)
+      setNotice('Task and its discussion deleted.')
+    } catch {
+      setError('Task could not be deleted. Check that you are a project manager or organisation administrator.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const toggleLaunchTeam = async teamId => {
+    if (!canManageTeam || !project) return
+    const current = Array.isArray(project.teamIds) ? project.teamIds : []
+    const next = current.includes(teamId) ? current.filter(id => id !== teamId) : [...current, teamId]
+    setError('')
+    setNotice('')
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId), {
+        teamIds: next,
+        updatedAt: serverTimestamp()
+      })
+      const team = orgTeams.find(item => item.id === teamId)
+      await recordActivity('teams_assigned', (current.includes(teamId) ? 'Removed team ' : 'Assigned team ') + '"' + (team?.name || 'team') + '" to this launch.')
+      setNotice('Launch team assignment updated.')
+    } catch {
+      setError('Team assignment could not be updated. Check your project permissions.')
     }
   }
 
@@ -646,9 +704,9 @@ export default function LaunchWorkspacePage() {
             <div className="v2-kanban-board">
               {taskStatuses.map(status => {
                 const columnTasks = filteredTasks.filter(task => task.status === status.value)
-                return <section className="v2-kanban-column" key={status.value}>
+                return <section className="v2-kanban-column" key={status.value} onDragOver={event => { if (canContribute) event.preventDefault() }} onDrop={event => { event.preventDefault(); if (canContribute && draggingTaskId) changeTaskStatus(draggingTaskId, status.value); setDraggingTaskId('') }}>
                   <div className="v2-kanban-column-heading"><strong>{status.label}</strong><span>{columnTasks.length}</span></div>
-                  {columnTasks.map(task => <article className="v2-kanban-card" key={task.id}>
+                  {columnTasks.map(task => <article className="v2-kanban-card" key={task.id} draggable={canContribute} onDragStart={() => setDraggingTaskId(task.id)} onDragEnd={() => setDraggingTaskId('')}>
                     <strong>{task.title}</strong>
                     <small>{task.priority || 'medium'} priority · {formatDate(task.dueDate)}</small>
                     {task.assignedToName && <small>Assigned to {task.assignedToName}</small>}
@@ -657,6 +715,7 @@ export default function LaunchWorkspacePage() {
                       <select aria-label={'Change status for ' + task.title} value={task.status || 'todo'} disabled={!canContribute} onChange={event => changeTaskStatus(task.id, event.target.value)}>{taskStatuses.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
                       <button className="v2-text-button" onClick={() => setActiveTask(task)}>Discussion</button>
                       {canContribute && <button className="v2-text-button" onClick={() => setEditingTask(task)}>Edit</button>}
+                      {canManageTeam && <button className="v2-text-button v2-danger-text" onClick={() => deleteTask(task)}>Delete</button>}
                     </div>
                   </article>)}
                   {!columnTasks.length && <div className="v2-kanban-empty">No tasks</div>}
@@ -664,7 +723,7 @@ export default function LaunchWorkspacePage() {
               })}
             </div>
           ) : taskView === 'timeline' ? (
-            <div className="v2-task-timeline">{timelineGroups.map(([date, groupedTasks]) => <section className="v2-task-timeline-group" key={date}><div className="v2-task-timeline-date"><Icon name="calendar" size={15}/><strong>{formatDate(date)}</strong><span>{groupedTasks.length} tasks</span></div><div className="v2-task-list">{groupedTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div></section>)}</div>
+            <div className="v2-task-timeline">{timelineGroups.map(([date, groupedTasks]) => <section className="v2-task-timeline-group" key={date}><div className="v2-task-timeline-date"><Icon name="calendar" size={15}/><strong>{formatDate(date)}</strong><span>{groupedTasks.length} tasks</span></div><div className="v2-task-list">{groupedTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} onDelete={deleteTask} canManage={canManageTeam} readOnly={!canContribute}/>)}</div></section>)}</div>
           ) : taskView === 'calendar' ? (
             <MonthCalendar tasks={filteredTasks} milestones={milestones} month={calendarMonth} onMonthChange={setCalendarMonth} onOpenTask={setActiveTask}/>
           ) : (
@@ -691,6 +750,10 @@ export default function LaunchWorkspacePage() {
       ) : (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch team</h2><p>Control which organisation members can view or contribute to this launch.</p></div></div>
+          {canManageTeam && <div className="v2-launch-team-assignment">
+            <div><strong>Assign organisation teams</strong><p>Select the functional teams responsible for this launch.</p></div>
+            {orgTeams.length ? <div className="v2-launch-team-picker">{orgTeams.map(team => <label key={team.id}><input type="checkbox" checked={(project.teamIds || []).includes(team.id)} onChange={() => toggleLaunchTeam(team.id)}/><span><strong>{team.name}</strong><small>{(team.memberUids || []).length} members</small></span></label>)}</div> : <p className="v2-invite-footnote">Create organisation teams first. <Link to="/app/teams">Manage teams</Link></p>}
+          </div>}
           {canManageTeam && (
             <div className="v2-project-member-form">
               <label className="v2-field"><span>Organisation member</span><select value={memberToAdd} onChange={event => setMemberToAdd(event.target.value)}><option value="">Choose a member</option>{unassignedMembers.map(member => <option key={member.id} value={member.id}>{member.displayName || member.email || member.id} · {member.role}</option>)}</select></label>
