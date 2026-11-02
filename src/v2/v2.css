@@ -665,3 +665,19 @@
   .v2-calendar-day-number { min-width: 18px; height: 18px; font-size: 9px; }
   .v2-calendar-event { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 }
+
+.v2-launch-team-assignment { margin: 14px 0 20px; padding: 14px; border: 1px solid var(--v2-border); border-radius: 10px; background: var(--v2-surface-soft); }
+.v2-launch-team-assignment > div:first-child { margin-bottom: 11px; }
+.v2-launch-team-assignment > div:first-child strong { display: block; font-size: 12px; }
+.v2-launch-team-assignment > div:first-child p { margin: 4px 0 0; color: var(--v2-muted); font-size: 10px; }
+.v2-launch-team-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.v2-launch-team-picker label { display: flex; align-items: center; gap: 8px; min-width: 185px; padding: 9px 10px; border: 1px solid var(--v2-border); border-radius: 8px; background: var(--v2-surface); cursor: pointer; }
+.v2-launch-team-picker input { accent-color: var(--v2-brand); }
+.v2-launch-team-picker span { display: flex; flex-direction: column; gap: 3px; }
+.v2-launch-team-picker strong { color: var(--v2-text); font-size: 11px; }
+.v2-launch-team-picker small { color: var(--v2-muted); font-size: 9px; }
+.v2-danger-text { color: var(--v2-danger) !important; }
+.v2-kanban-card[draggable="true"] { cursor: grab; }
+.v2-kanban-card[draggable="true"]:active { cursor: grabbing; }
+.v2-kanban-column { transition: border-color .15s ease, background .15s ease; }
+.v2-kanban-column:has(.v2-kanban-card[draggable="true"]) { border-style: dashed; }
