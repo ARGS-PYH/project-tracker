@@ -210,6 +210,7 @@ export default function MemberManagementPage() {
               <span className="v2-avatar">{(member.displayName || member.email || 'U').slice(0,1).toUpperCase()}</span>
               <div className="v2-member-info"><strong>{member.displayName || 'PLTK member'}</strong><small>{member.email || member.id}</small></div>
               {canChange ? <select aria-label={'Role for ' + (member.displayName || member.email || member.id)} value={member.role} onChange={event => changeMemberRole(member, event.target.value)} disabled={busy}>
+                {!(selectedOrganisation?.role === 'owner' ? ['admin','member','guest'] : ['member','guest']).includes(member.role) && <option value={member.role} disabled>{member.role}</option>}
                 {(selectedOrganisation?.role === 'owner' ? ['admin','member','guest'] : ['member','guest']).map(role => <option key={role} value={role}>{role}</option>)}
               </select> : <RolePill role={member.role}/>}
               <span className="v2-member-active">{member.status || 'active'}</span>
