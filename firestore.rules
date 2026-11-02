@@ -302,7 +302,8 @@ service cloud.firestore {
               'comment_added',
               'file_uploaded',
               'readiness_updated',
-              'teams_assigned'
+              'teams_assigned',
+              'project_settings_updated'
             ]
             && request.resource.data.createdAt == request.time;
           allow update, delete: if false;
