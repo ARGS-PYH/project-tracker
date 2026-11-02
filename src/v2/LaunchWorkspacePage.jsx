@@ -247,6 +247,14 @@ export default function LaunchWorkspacePage() {
   }, [selectedOrgId, projectId, selectedOrganisation?.role])
 
   const filteredTasks = useMemo(() => tasks.filter(task => statusFilter === 'all' || task.status === statusFilter), [tasks, statusFilter])
+  const timelineGroups = useMemo(() => {
+    const grouped = new Map()
+    filteredTasks.forEach(task => {
+      const key = task.dueDate || 'No due date'
+      grouped.set(key, [...(grouped.get(key) || []), task])
+    })
+    return [...grouped.entries()].sort(([a], [b]) => String(a).localeCompare(String(b)))
+  }, [filteredTasks])
   const completedCount = tasks.filter(task => task.status === 'done').length
   const blockedCount = tasks.filter(task => task.status === 'blocked').length
   const progress = tasks.length ? Math.round(completedCount / tasks.length * 100) : 0
@@ -516,6 +524,8 @@ export default function LaunchWorkspacePage() {
                 </section>
               })}
             </div>
+          ) : taskView === 'timeline' ? (
+            <div className="v2-task-timeline">{timelineGroups.map(([date, groupedTasks]) => <section className="v2-task-timeline-group" key={date}><div className="v2-task-timeline-date"><Icon name="calendar" size={15}/><strong>{formatDate(date)}</strong><span>{groupedTasks.length} tasks</span></div><div className="v2-task-list">{groupedTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div></section>)}</div>
           ) : (
             <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div>
           ) : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : canContribute ? 'Create the first task for this launch using the form above.' : 'A project contributor can add the first task.'}</p></div></div>}
