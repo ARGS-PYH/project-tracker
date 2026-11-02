@@ -27,6 +27,7 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 - Organisation name settings for owners and administrators.
 - Milestone creation, editing, status updates and task-linked milestone progress.
 - Assign organisation teams to each launch.
+- Edit launch names, descriptions and target dates from launch settings.
 - Responsive layouts and light/dark design tokens.
 - Tenant-scoped Firestore and Firebase Storage rule baselines.
 - GitHub Actions production build check.
@@ -48,7 +49,7 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 
 **User → Organisation → Teams → Launches → Milestones → Tasks**
 
-Each organisation is an independent tenant. Standard organisation members can collaborate across that organisation. Project-level guest access is reserved for the upcoming project-sharing workflow.
+Each organisation is an independent tenant. Standard organisation members can collaborate across that organisation. Project-level guest access is controlled by explicit project membership. Organisation invitations currently create member accounts; a project manager can assign a member to a launch, and an administrator can change that person's organisation role to guest.
 
 Product and engineering decisions are recorded in [docs/PLTK-V2-FOUNDATION.md](docs/PLTK-V2-FOUNDATION.md).
 
