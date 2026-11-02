@@ -133,13 +133,12 @@ export default function MemberManagementPage() {
       }
 
       const teamsSnapshot = await getDocs(collection(db, 'organisations', selectedOrgId, 'teams'))
-      for (let index = 0; index < teamsSnapshot.docs.length; index += 200) {
+      const changedTeams = teamsSnapshot.docs.filter(team => (team.data().memberUids || []).includes(member.id))
+      for (let index = 0; index < changedTeams.length; index += 400) {
         const batch = writeBatch(db)
-        teamsSnapshot.docs.slice(index, index + 200).forEach(team => {
+        changedTeams.slice(index, index + 400).forEach(team => {
           const memberUids = (team.data().memberUids || []).filter(uid => uid !== member.id)
-          if (memberUids.length !== (team.data().memberUids || []).length) {
-            batch.update(team.ref, { memberUids, updatedAt: serverTimestamp() })
-          }
+          batch.update(team.ref, { memberUids, updatedAt: serverTimestamp() })
         })
         await batch.commit()
       }
