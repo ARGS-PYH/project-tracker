@@ -85,9 +85,11 @@ service cloud.firestore {
       allow delete: if false;
 
       match /organisations/{orgId} {
-        // This is a user's navigation index only. Actual access is always checked
-        // against organisations/{orgId}/members/{uid}.
-        allow read, create, update, delete: if isSelf(uid);
+        // This is a navigation index, never the source of authority. Users may
+        // manage their own index; an organisation admin may delete another
+        // member's stale index while revoking that membership.
+        allow read, create, update: if isSelf(uid);
+        allow delete: if isSelf(uid) || (isOrgAdmin(orgId) && uid != request.auth.uid);
       }
 
       match /personalTasks/{taskId} {
