@@ -111,7 +111,7 @@ function CreateOrganisationScreen() {
 }
 
 function Sidebar({ onClose }) {
-  const { organisations, selectedOrgId, setSelectedOrgId } = useWorkspace()
+  const { organisations, selectedOrgId, selectedOrganisation, setSelectedOrgId } = useWorkspace()
   const { signOut, user } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const navigate = useNavigate()
@@ -138,7 +138,7 @@ function Sidebar({ onClose }) {
 
       <div className="v2-nav-label">WORKSPACE</div>
       <nav className="v2-nav">
-        {primaryNav.map(item => (
+        {primaryNav.filter(item => selectedOrganisation?.role !== 'guest' || ['Overview', 'Launches', 'My tasks'].includes(item.label)).map(item => (
           <NavLink key={item.to} to={item.to} onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}>
             <Icon name={item.icon}/><span>{item.label}</span>
           </NavLink>
@@ -146,11 +146,15 @@ function Sidebar({ onClose }) {
       </nav>
 
       <div className="v2-sidebar-spacer"/>
-      <div className="v2-nav-label">ADMINISTRATION</div>
-      <nav className="v2-nav">
-        <NavLink to="/app/settings" onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}><Icon name="settings"/><span>Settings</span></NavLink>
-        <NavLink to="/app/members" onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}><Icon name="shield"/><span>Members & access</span></NavLink>
-      </nav>
+      {['owner', 'admin'].includes(selectedOrganisation?.role) && (
+        <>
+          <div className="v2-nav-label">ADMINISTRATION</div>
+          <nav className="v2-nav">
+            <NavLink to="/app/settings" onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}><Icon name="settings"/><span>Settings</span></NavLink>
+            <NavLink to="/app/members" onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}><Icon name="shield"/><span>Members & access</span></NavLink>
+          </nav>
+        </>
+      )}
 
       <div className="v2-sidebar-bottom">
         <button className="v2-nav-link v2-plain-nav" onClick={toggleTheme}><Icon name={theme === 'dark' ? 'sun' : 'moon'}/><span>Switch to {theme === 'dark' ? 'light' : 'dark'} mode</span></button>
