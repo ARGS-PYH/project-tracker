@@ -12,6 +12,7 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 - Firebase email/password sign-in and registration, email verification and password reset.
 - Organisation creation and organisation switching.
 - Organisation member invitations using expiring links, verified-email acceptance and member records.
+- Organisation member role changes and removal with project, team and navigation-index cleanup.
 - Organisation team creation and member assignment.
 - Launch creation and organisation launch listing.
 - Launch workspace with task creation, editing, priorities, due dates, milestone linking and status updates.
@@ -32,12 +33,12 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 
 ### Still to implement
 
-- Drag-and-drop task board, month calendar, subtasks and task dependency management.
-- Task deletion controls and richer task history.
-- Milestone editing, milestone approvals and completion workflows.
+- Task dependency management and richer calendar interactions.
+- Richer task history and activity filtering.
+- Milestone approvals and multi-step completion workflows.
 - Automated notification generation, delivery preferences and email/push delivery.
 - Backend email delivery for organisation invitations and notifications.
-- Team-to-launch assignment and team-specific task filters.
+- Team-specific task filters and workload management.
 - Launch settings and lifecycle approvals.
 - Legacy PLTK project/member/task migration tooling.
 - Automated Firestore and Storage rules tests using the Firebase Emulator.
