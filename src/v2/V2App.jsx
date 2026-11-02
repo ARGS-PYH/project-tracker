@@ -12,8 +12,7 @@ import { MyTasksPage, MilestonesPage, ReportsPage, NotificationsPage, Organisati
 import {
   LaunchesPage,
   NewLaunchPage,
-  OverviewPage,
-  PlaceholderPage
+  OverviewPage
 } from './WorkspacePages.jsx'
 import './v2.css'
 
