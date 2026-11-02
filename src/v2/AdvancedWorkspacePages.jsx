@@ -6,7 +6,8 @@ import {
   getDoc,
   onSnapshot,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  writeBatch
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
@@ -38,7 +39,7 @@ function formatDate(value) {
 }
 
 function useProjectData() {
-  const { selectedOrgId, projects } = useWorkspace()
+  const { selectedOrgId, projects, projectsLoading } = useWorkspace()
   const { user } = useAuth()
   const projectKey = projects.map(project => project.id).sort().join('|')
   const [tasksByProject, setTasksByProject] = useState({})
@@ -48,7 +49,11 @@ function useProjectData() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!selectedOrgId || !projectKey) {
+    if (!selectedOrgId || projectsLoading) {
+      setLoading(Boolean(projectsLoading))
+      return undefined
+    }
+    if (!projectKey) {
       setTasksByProject({})
       setMilestonesByProject({})
       setRolesByProject({})
@@ -104,7 +109,7 @@ function useProjectData() {
       active = false
       unsubscribers.forEach(unsubscribe => unsubscribe())
     }
-  }, [selectedOrgId, projectKey, user?.uid])
+  }, [selectedOrgId, projectKey, projectsLoading, user?.uid])
 
   const tasks = useMemo(() => projects.flatMap(project =>
     (tasksByProject[project.id] || []).map(task => ({
@@ -338,7 +343,7 @@ export function OrganisationSettingsPage() {
     setError('')
     setNotice('')
     try {
-      const batch = await import('firebase/firestore').then(module => module.writeBatch(db))
+      const batch = writeBatch(db)
       batch.update(doc(db, 'organisations', selectedOrgId), {
         name: clean,
         slug: clean.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48),
