@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { collection, doc, onSnapshot, serverTimestamp, setDoc, Timestamp, updateDoc } from 'firebase/firestore'
+import { collection, doc, getDocs, onSnapshot, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
@@ -93,6 +93,69 @@ export default function MemberManagementPage() {
     }
   }
 
+  const changeMemberRole = async (member, role) => {
+    if (!canInvite || !member || member.role === 'owner' || member.id === user?.uid) return
+    const allowed = selectedOrganisation?.role === 'owner'
+      ? ['admin', 'member', 'guest']
+      : ['member', 'guest']
+    if (!allowed.includes(role) || role === member.role) return
+    setError('')
+    setNotice('')
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'members', member.id), {
+        role,
+        roleUpdatedAt: serverTimestamp(),
+        roleUpdatedBy: user.uid
+      })
+      setNotice((member.displayName || member.email || 'Member') + ' is now a ' + role + '.')
+    } catch {
+      setError('Member role could not be changed. Only organisation owners and administrators can manage roles.')
+    }
+  }
+
+  const removeMember = async member => {
+    if (!canInvite || !member || member.role === 'owner' || member.id === user?.uid) return
+    const label = member.displayName || member.email || 'this member'
+    if (!window.confirm('Remove ' + label + ' from this organisation and revoke all launch access?')) return
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const projectsSnapshot = await getDocs(collection(db, 'organisations', selectedOrgId, 'projects'))
+      const projectDocs = projectsSnapshot.docs
+      for (let index = 0; index < projectDocs.length; index += 200) {
+        const batch = writeBatch(db)
+        projectDocs.slice(index, index + 200).forEach(project => {
+          batch.delete(doc(db, 'organisations', selectedOrgId, 'projects', project.id, 'members', member.id))
+          batch.delete(doc(db, 'organisations', selectedOrgId, 'members', member.id, 'projects', project.id))
+        })
+        await batch.commit()
+      }
+
+      const teamsSnapshot = await getDocs(collection(db, 'organisations', selectedOrgId, 'teams'))
+      for (let index = 0; index < teamsSnapshot.docs.length; index += 200) {
+        const batch = writeBatch(db)
+        teamsSnapshot.docs.slice(index, index + 200).forEach(team => {
+          const memberUids = (team.data().memberUids || []).filter(uid => uid !== member.id)
+          if (memberUids.length !== (team.data().memberUids || []).length) {
+            batch.update(team.ref, { memberUids, updatedAt: serverTimestamp() })
+          }
+        })
+        await batch.commit()
+      }
+
+      const batch = writeBatch(db)
+      batch.delete(doc(db, 'organisations', selectedOrgId, 'members', member.id))
+      batch.delete(doc(db, 'users', member.id, 'organisations', selectedOrgId))
+      await batch.commit()
+      setNotice(label + ' was removed and their project access was revoked.')
+    } catch {
+      setError('Member removal did not finish. Some project access may remain; review the member list and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const revokeInvitation = async invitationId => {
     setError('')
     setNotice('')
@@ -142,7 +205,18 @@ export default function MemberManagementPage() {
       <section className="v2-panel">
         <div className="v2-panel-heading"><div><h2>Organisation members <span className="v2-count-badge">{members.length}</span></h2><p>People who currently belong to this organisation.</p></div></div>
         {loading ? <div className="v2-card-loading"><span className="v2-spinner"/>Loading members…</div> : members.length ? (
-          <div className="v2-member-list">{members.map(member => <div className="v2-member-row" key={member.id}><span className="v2-avatar">{(member.displayName || member.email || 'U').slice(0,1).toUpperCase()}</span><div className="v2-member-info"><strong>{member.displayName || 'PLTK member'}</strong><small>{member.email || member.id}</small></div><RolePill role={member.role}/><span className="v2-member-active">{member.status || 'active'}</span></div>)}</div>
+          <div className="v2-member-list">{members.map(member => {
+            const canChange = member.role !== 'owner' && member.id !== user?.uid
+            return <div className="v2-member-row" key={member.id}>
+              <span className="v2-avatar">{(member.displayName || member.email || 'U').slice(0,1).toUpperCase()}</span>
+              <div className="v2-member-info"><strong>{member.displayName || 'PLTK member'}</strong><small>{member.email || member.id}</small></div>
+              {canChange ? <select aria-label={'Role for ' + (member.displayName || member.email || member.id)} value={member.role} onChange={event => changeMemberRole(member, event.target.value)} disabled={busy}>
+                {(selectedOrganisation?.role === 'owner' ? ['admin','member','guest'] : ['member','guest']).map(role => <option key={role} value={role}>{role}</option>)}
+              </select> : <RolePill role={member.role}/>}
+              <span className="v2-member-active">{member.status || 'active'}</span>
+              {canChange && <button className="v2-text-button v2-danger-text" onClick={() => removeMember(member)} disabled={busy}>Remove</button>}
+            </div>
+          })}</div>
         ) : <div className="v2-list-empty"><div><strong>No members found</strong><p>Invite colleagues to start collaborating.</p></div></div>}
       </section>
 
