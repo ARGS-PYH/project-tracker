@@ -35,7 +35,7 @@ function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(date)
 }
 
-export function TaskEditor({ task, milestones, members, onSave, onCancel, busy }) {
+export function TaskEditor({ task, milestones, members, tasks, onSave, onCancel, busy }) {
   const [values, setValues] = useState({})
   const [subtaskTitle, setSubtaskTitle] = useState('')
   useEffect(() => {
@@ -47,7 +47,8 @@ export function TaskEditor({ task, milestones, members, onSave, onCancel, busy }
       dueDate: typeof task?.dueDate === 'string' ? task.dueDate : '',
       milestoneId: task?.milestoneId || '',
       assigneeUid: task?.assignedToUid || '',
-      subtasks: Array.isArray(task?.subtasks) ? task.subtasks : []
+      subtasks: Array.isArray(task?.subtasks) ? task.subtasks : [],
+      dependsOn: Array.isArray(task?.dependsOn) ? task.dependsOn : []
     })
     setSubtaskTitle('')
   }, [task?.id])
@@ -75,6 +76,13 @@ export function TaskEditor({ task, milestones, members, onSave, onCancel, busy }
         <label className="v2-field"><span>Due date</span><input type="date" value={values.dueDate || ''} onChange={event => set('dueDate', event.target.value)}/></label>
         <label className="v2-field"><span>Milestone</span><select value={values.milestoneId || ''} onChange={event => set('milestoneId', event.target.value)}><option value="">No milestone</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
         <label className="v2-field"><span>Assignee</span><select value={values.assigneeUid || ''} onChange={event => set('assigneeUid', event.target.value)}><option value="">Unassigned</option>{members.map(member => <option key={member.id} value={member.id}>{member.displayName || member.email || member.id}</option>)}</select></label>
+      </div>
+      <div className="v2-subtask-editor">
+        <div className="v2-subtask-heading"><strong>Task dependencies</strong><span>Complete these tasks first</span></div>
+        {tasks.filter(item => item.id !== task?.id).length ? tasks.filter(item => item.id !== task?.id).map(item => <label className="v2-dependency-edit-row" key={item.id}>
+          <input type="checkbox" checked={(values.dependsOn || []).includes(item.id)} onChange={event => set('dependsOn', event.target.checked ? [...(values.dependsOn || []), item.id] : (values.dependsOn || []).filter(id => id !== item.id))}/>
+          <span><strong>{item.title}</strong><small>{item.status || 'todo'} · {item.priority || 'medium'} priority</small></span>
+        </label>) : <p className="v2-invite-footnote">Add another task before setting a dependency.</p>}
       </div>
       <div className="v2-subtask-editor">
         <div className="v2-subtask-heading"><strong>Subtasks</strong><span>{(values.subtasks || []).filter(item => item.complete).length} of {(values.subtasks || []).length} complete</span></div>
