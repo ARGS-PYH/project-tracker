@@ -193,6 +193,7 @@ export function WorkspaceProvider({ children }) {
       ownerName: user.displayName || user.email || 'Workspace owner',
       status: 'planning',
       readinessStatus: 'not_started',
+      teamIds: [],
       progress: 0,
       targetLaunchDate: targetLaunchDate || null,
       createdAt,
