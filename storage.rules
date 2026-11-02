@@ -42,9 +42,9 @@ service firebase.storage {
     }
 
     match /organisations/{orgId}/projects/{projectId}/{filePath=**} {
-      allow read: if orgMember(orgId) && (orgAdmin(orgId) || projectMember(orgId, projectId));
-      allow create: if orgMember(orgId) && canUpload(orgId, projectId) && allowedFile();
-      allow update: if orgMember(orgId) && canUpload(orgId, projectId) && allowedFile();
+      allow read: if orgAdmin(orgId) || projectMember(orgId, projectId);
+      allow create: if canUpload(orgId, projectId) && allowedFile();
+      allow update: if canUpload(orgId, projectId) && allowedFile();
       allow delete: if projectManager(orgId, projectId);
     }
 
