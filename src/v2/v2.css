@@ -623,3 +623,45 @@
 .v2-launch-status-select, .v2-milestone-status-row select { min-height: 32px; padding: 0 9px; color: var(--v2-brand); background: var(--v2-brand-soft); border: 1px solid var(--v2-brand-border); border-radius: 8px; font: inherit; font-size: 11px; font-weight: 700; text-transform: capitalize; }
 .v2-milestone-status-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--v2-border); color: var(--v2-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
 .v2-milestone-status-row strong { color: var(--v2-text); font-size: 11px; text-transform: capitalize; letter-spacing: 0; }
+
+
+/* Calendar, subtasks and milestone editing */
+.v2-calendar { margin-top: 10px; }
+.v2-calendar-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.v2-calendar-toolbar > strong { font-size: 15px; color: var(--v2-text); }
+.v2-calendar-toolbar > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.v2-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.v2-calendar-weekday { padding: 8px 4px; text-align: center; color: var(--v2-muted); font-size: 10px; font-weight: 750; text-transform: uppercase; }
+.v2-calendar-day { min-height: 118px; padding: 8px; overflow: hidden; border: 1px solid var(--v2-border); border-radius: 9px; background: var(--v2-surface); }
+.v2-calendar-day.outside { background: var(--v2-surface-soft); opacity: .56; }
+.v2-calendar-day-number { display: inline-grid; min-width: 23px; height: 23px; place-items: center; margin-bottom: 5px; border-radius: 50%; color: var(--v2-text); font-size: 10px; }
+.v2-calendar-events { display: flex; flex-direction: column; gap: 4px; }
+.v2-calendar-event { display: block; width: 100%; padding: 4px 5px; overflow: hidden; border: 0; border-radius: 5px; text-align: left; white-space: nowrap; text-overflow: ellipsis; font: inherit; font-size: 9px; }
+.v2-calendar-event.task { color: var(--v2-brand); background: var(--v2-brand-soft); cursor: pointer; }
+.v2-calendar-event.milestone { color: var(--v2-purple); background: color-mix(in srgb, var(--v2-purple) 13%, transparent); }
+.v2-calendar-events > small { color: var(--v2-muted); font-size: 9px; }
+.v2-calendar-note { margin: 10px 0 0; color: var(--v2-muted); font-size: 10px; }
+.v2-subtask-editor { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; padding: 13px; border: 1px solid var(--v2-border); border-radius: 9px; background: var(--v2-surface); }
+.v2-subtask-heading { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; }
+.v2-subtask-heading span { color: var(--v2-muted); font-size: 10px; }
+.v2-subtask-edit-row { display: flex; align-items: center; justify-content: space-between; gap: 9px; font-size: 11px; }
+.v2-subtask-edit-row label { display: flex; align-items: center; gap: 8px; }
+.v2-subtask-edit-row input { accent-color: var(--v2-brand); }
+.v2-subtask-edit-row span { color: var(--v2-text); }
+.v2-subtask-add-row { display: flex; gap: 8px; }
+.v2-subtask-add-row input { flex: 1; min-width: 0; min-height: 34px; padding: 7px 9px; color: var(--v2-text); background: var(--v2-surface-soft); border: 1px solid var(--v2-border); border-radius: 7px; font: inherit; font-size: 11px; }
+.v2-milestone-card-actions { display: flex; justify-content: flex-end; margin-top: 5px; }
+@media (max-width: 800px) {
+  .v2-calendar-grid { gap: 3px; }
+  .v2-calendar-day { min-height: 84px; padding: 5px; }
+  .v2-calendar-event { font-size: 8px; padding: 3px; }
+}
+@media (max-width: 520px) {
+  .v2-calendar-toolbar { align-items: flex-start; flex-direction: column; }
+  .v2-calendar-toolbar > div { width: 100%; }
+  .v2-calendar-toolbar .v2-button { flex: 1; padding-inline: 6px; font-size: 10px; }
+  .v2-calendar-weekday { font-size: 8px; }
+  .v2-calendar-day { min-height: 68px; padding: 3px; }
+  .v2-calendar-day-number { min-width: 18px; height: 18px; font-size: 9px; }
+  .v2-calendar-event { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+}
