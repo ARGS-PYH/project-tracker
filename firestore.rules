@@ -117,7 +117,10 @@ service cloud.firestore {
       allow delete: if isOrgOwner(orgId);
 
       match /members/{memberUid} {
-        allow read: if isOrgMember(orgId);
+        // A user may verify their own canonical membership (including guest
+        // access); listing the organisation roster remains member/admin-only.
+        allow get: if isOrgMember(orgId) || (signedIn() && request.auth.uid == memberUid);
+        allow list: if isOrgMember(orgId);
 
         // Initial owner membership must be created in the same atomic batch as
         // the organisation document, whose ownerUid is the signed-in user.
