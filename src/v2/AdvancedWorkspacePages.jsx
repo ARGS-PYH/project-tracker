@@ -38,7 +38,7 @@ function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
 }
 
-function useProjectData() {
+export function useProjectData() {
   const { selectedOrgId, projects, projectsLoading } = useWorkspace()
   const { user } = useAuth()
   const projectKey = projects.map(project => project.id).sort().join('|')
