@@ -17,7 +17,8 @@ service cloud.firestore {
     function isOrgMember(orgId) {
       return signedIn()
         && exists(memberPath(orgId, request.auth.uid))
-        && get(memberPath(orgId, request.auth.uid)).data.status == 'active';
+        && get(memberPath(orgId, request.auth.uid)).data.status == 'active'
+        && get(memberPath(orgId, request.auth.uid)).data.role in ['owner', 'admin', 'member'];
     }
 
     function orgRole(orgId) {
@@ -52,9 +53,8 @@ service cloud.firestore {
 
     function canReadProject(orgId, projectId) {
       // Standard organisation members can collaborate across the organisation.
-      // Guests only see projects where they have explicit project membership.
-      return (isOrgMember(orgId) && orgRole(orgId) != 'guest')
-        || isProjectMember(orgId, projectId);
+      // Guest users must have explicit membership in the requested project.
+      return isOrgMember(orgId) || isProjectMember(orgId, projectId);
     }
 
     function canManageProject(orgId, projectId) {
@@ -114,11 +114,18 @@ service cloud.firestore {
           && request.resource.data.role == 'owner'
           && request.resource.data.status == 'active';
 
-        allow update: if isOrgOwner(orgId)
-          || (
-            isOrgAdmin(orgId)
-            && resource.data.role != 'owner'
-            && request.resource.data.role in ['admin', 'member', 'guest']
+        allow update: if request.resource.data.uid == memberUid
+          && (
+            (
+              isOrgOwner(orgId)
+              && resource.data.role != 'owner'
+              && request.resource.data.role in ['admin', 'member', 'guest']
+            )
+            || (
+              isOrgAdmin(orgId)
+              && resource.data.role != 'owner'
+              && request.resource.data.role in ['member', 'guest']
+            )
           );
         allow delete: if isOrgAdmin(orgId)
           && memberUid != request.auth.uid
@@ -140,9 +147,7 @@ service cloud.firestore {
           && request.resource.data.organisationId == orgId
           && request.resource.data.ownerUid == request.auth.uid;
 
-        // Organisation members can see launch summary records; detailed project
-        // resources remain restricted to project members and organisation admins.
-        allow read: if isOrgMember(orgId) || isProjectMember(orgId, projectId);
+        allow read: if canReadProject(orgId, projectId);
         allow update: if canManageProject(orgId, projectId)
           && request.resource.data.organisationId == resource.data.organisationId
           && request.resource.data.ownerUid == resource.data.ownerUid;
@@ -165,11 +170,17 @@ service cloud.firestore {
               && request.resource.data.role == 'project_manager'
               && getAfter(/databases/$(database)/documents/organisations/$(orgId)/projects/$(projectId)).data.ownerUid == request.auth.uid
             );
-          allow update: if isOrgAdmin(orgId)
-            || (
-              canManageProject(orgId, projectId)
-              && resource.data.role != 'project_manager'
-              && request.resource.data.role in ['contributor', 'viewer']
+          allow update: if request.resource.data.uid == projectMemberUid
+            && (
+              (
+                isOrgAdmin(orgId)
+                && request.resource.data.role in ['project_manager', 'contributor', 'viewer']
+              )
+              || (
+                canManageProject(orgId, projectId)
+                && resource.data.role != 'project_manager'
+                && request.resource.data.role in ['contributor', 'viewer']
+              )
             );
           allow delete: if isOrgAdmin(orgId)
             || (canManageProject(orgId, projectId) && resource.data.role != 'project_manager');
