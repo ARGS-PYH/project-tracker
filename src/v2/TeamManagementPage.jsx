@@ -77,6 +77,10 @@ export default function TeamManagementPage() {
     }
   }
 
+  if (selectedOrganisation?.role === 'guest') {
+    return <div className="v2-page"><div className="v2-page-header"><div><span className="v2-eyebrow">PEOPLE & COLLABORATION</span><h1>Teams</h1><p>Team management is available to organisation members.</p></div></div><div className="v2-empty-state v2-empty-state-compact"><h3>Project-specific access</h3><p>Your guest account can access only the launches that have been shared with you.</p></div></div>
+  }
+
   return (
     <div className="v2-page">
       <div className="v2-page-header"><div><span className="v2-eyebrow">PEOPLE & COLLABORATION</span><h1>Teams</h1><p>Group people by function so every launch has the right contributors around it.</p></div></div>
