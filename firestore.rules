@@ -88,7 +88,9 @@ service cloud.firestore {
         // This is a navigation index, never the source of authority. Users may
         // manage their own index; an organisation admin may delete another
         // member's stale index while revoking that membership.
-        allow read, create, update: if isSelf(uid);
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid) || (isOrgAdmin(orgId) && request.resource.data.keys().hasOnly(['name']));
+        allow update: if isSelf(uid) || (isOrgAdmin(orgId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
         allow delete: if isSelf(uid) || (isOrgAdmin(orgId) && uid != request.auth.uid);
       }
 
