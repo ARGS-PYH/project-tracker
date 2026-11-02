@@ -166,7 +166,7 @@ function Sidebar({ onClose }) {
 
 export default function WorkspaceShell() {
   const { user } = useAuth()
-  const { organisations, organisationLoading, error, clearError } = useWorkspace()
+  const { organisations, organisationLoading, projects, projectsLoading, selectedOrganisation, error, clearError } = useWorkspace()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   if (!user?.emailVerified) return <VerifyEmailScreen/>
@@ -180,11 +180,11 @@ export default function WorkspaceShell() {
       <div className="v2-main">
         <header className="v2-topbar">
           <button className="v2-icon-button v2-mobile-menu" aria-label="Open navigation" onClick={() => setMobileOpen(true)}><Icon name="menu"/></button>
-          <div className="v2-breadcrumb"><span>Organisation workspace</span><Icon name="chevron" size={14}/><strong>Product launch tracker</strong></div>
+          <div className="v2-breadcrumb"><span>{selectedOrganisation?.name || 'Organisation workspace'}</span><Icon name="chevron" size={14}/><strong>Product launch tracker</strong></div>
           <div className="v2-topbar-actions"><span className="v2-status-dot"/> <span className="v2-connection-label">Connected</span></div>
         </header>
         {error && <div className="v2-global-alert"><span>{error}</span><button onClick={clearError} aria-label="Dismiss message"><Icon name="x" size={16}/></button></div>}
-        <main className="v2-content"><Outlet/></main>
+        <main className="v2-content"><Outlet context={{ projects, projectsLoading, selectedOrganisation }}/></main>
         <footer className="v2-footer"><span>PLTK · Product Launch Tracker</span><span>Built for focused product execution</span></footer>
       </div>
     </div>
