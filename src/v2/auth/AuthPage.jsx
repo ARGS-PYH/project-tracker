@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from './AuthProvider.jsx'
 import Icon from '../icons.jsx'
 
@@ -7,6 +7,8 @@ export default function AuthPage({ mode = 'login' }) {
   const isSignup = mode === 'signup'
   const { signIn, signUp, resetPassword } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const nextPath = searchParams.get('next')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,7 +36,7 @@ export default function AuthPage({ mode = 'login' }) {
     try {
       if (isSignup) {
         await signUp({ name, email, password })
-        navigate('/app', { replace: true })
+        navigate(nextPath || '/app', { replace: true })
       } else {
         await signIn(email, password)
         navigate('/app', { replace: true })
@@ -116,7 +118,7 @@ export default function AuthPage({ mode = 'login' }) {
         <p className="v2-auth-switch">
           {isSignup ? 'Already have an account?' : "Don't have an account?"}
           {' '}
-          <Link to={isSignup ? '/app/login' : '/app/signup'}>{isSignup ? 'Sign in' : 'Create account'}</Link>
+          <Link to={isSignup ? (nextPath ? '/app/login?next=' + encodeURIComponent(nextPath) : '/app/login') : (nextPath ? '/app/signup?next=' + encodeURIComponent(nextPath) : '/app/signup')}>{isSignup ? 'Sign in' : 'Create account'}</Link>
         </p>
         <p className="v2-auth-legal">By continuing, you agree to use PLTK in accordance with your organisation's policies.</p>
       </section>
