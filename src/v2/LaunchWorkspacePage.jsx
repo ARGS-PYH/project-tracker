@@ -13,6 +13,7 @@ import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
+import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel } from './LaunchExtras.jsx'
 
 const taskStatuses = [
   { value: 'todo', label: 'To do' },
@@ -36,7 +37,7 @@ function StatusPill({ value }) {
   return <span className={'v2-task-status status-' + status.value}>{status.label}</span>
 }
 
-function TaskRow({ task, onStatusChange, readOnly = false }) {
+function TaskRow({ task, onStatusChange, onEdit, onOpenComments, readOnly = false }) {
   return (
     <div className="v2-task-row">
       <div className="v2-task-main">
@@ -52,6 +53,8 @@ function TaskRow({ task, onStatusChange, readOnly = false }) {
         <select aria-label={'Update status for ' + task.title} value={task.status || 'todo'} onChange={event => onStatusChange(task.id, event.target.value)} disabled={readOnly}>
           {taskStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}
         </select>
+        <button type="button" className="v2-text-button" onClick={() => onOpenComments(task)}>Discussion</button>
+        {!readOnly && <button type="button" className="v2-text-button" onClick={() => onEdit(task)}>Edit</button>}
       </div>
     </div>
   )
@@ -150,6 +153,12 @@ export default function LaunchWorkspacePage() {
   const [busy, setBusy] = useState(false)
   const [teamBusy, setTeamBusy] = useState(false)
   const [activeTab, setActiveTab] = useState('tasks')
+  const [taskView, setTaskView] = useState('list')
+  const [editingTask, setEditingTask] = useState(null)
+  const [activeTask, setActiveTask] = useState(null)
+  const [files, setFiles] = useState([])
+  const [activity, setActivity] = useState([])
+  const [readinessBusy, setReadinessBusy] = useState(false)
   const [memberToAdd, setMemberToAdd] = useState('')
   const [roleToAssign, setRoleToAssign] = useState('contributor')
   const [error, setError] = useState('')
@@ -202,6 +211,17 @@ export default function LaunchWorkspacePage() {
       projectMembersReady = true
       finishIfReady()
     })
+    const unsubFiles = onSnapshot(collection(db, ...base, 'files'), snapshot => {
+      setFiles(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)))
+    }, () => {
+      setFiles([])
+      setError('Launch files could not be loaded. Check your project access.')
+    })
+    const unsubActivity = onSnapshot(collection(db, ...base, 'activity'), snapshot => {
+      setActivity(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0)))
+    }, () => {
+      setActivity([])
+    })
     let unsubOrgMembers = () => {}
     if (selectedOrganisation?.role !== 'guest') {
       unsubOrgMembers = onSnapshot(collection(db, 'organisations', selectedOrgId, 'members'), snapshot => {
@@ -221,6 +241,8 @@ export default function LaunchWorkspacePage() {
       unsubMilestones()
       unsubProjectMembers()
       unsubOrgMembers()
+      unsubFiles()
+      unsubActivity()
     }
   }, [selectedOrgId, projectId, selectedOrganisation?.role])
 
@@ -235,6 +257,22 @@ export default function LaunchWorkspacePage() {
   const unassignedMembers = orgMembers.filter(member =>
     !projectMembers.some(projectMember => projectMember.id === member.id)
   )
+
+  const recordActivity = async (type, message, entityId = '') => {
+    if (!user?.uid || !selectedOrgId || !projectId) return
+    try {
+      await addDoc(collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'activity'), {
+        type,
+        message,
+        entityId,
+        actorUid: user.uid,
+        actorName: user.displayName || user.email || 'Team member',
+        createdAt: serverTimestamp()
+      })
+    } catch {
+      // Activity is supplementary; the primary user action should still succeed.
+    }
+  }
 
   const addProjectMember = async () => {
     if (!memberToAdd || !canManageTeam || !project) return
@@ -297,7 +335,7 @@ export default function LaunchWorkspacePage() {
     setError('')
     setNotice('')
     try {
-      await addDoc(collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks'), {
+      const createdTask = await addDoc(collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks'), {
         title: values.title.trim(),
         description: values.description.trim(),
         status: 'todo',
@@ -316,6 +354,7 @@ export default function LaunchWorkspacePage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
+      await recordActivity('task_created', 'Created task "' + values.title.trim() + '".', createdTask.id)
       setNotice('Task added to the launch.')
     } catch {
       setError('Task could not be created. Check that you have contributor or project manager access.')
@@ -333,6 +372,8 @@ export default function LaunchWorkspacePage() {
         status,
         updatedAt: serverTimestamp()
       })
+      const changedTask = tasks.find(item => item.id === taskId)
+      await recordActivity('task_status_changed', 'Changed "' + (changedTask?.title || 'a task') + '" to ' + status.replace('_', ' ') + '.', taskId)
     } catch {
       setError('Task status could not be updated. Check your project permissions.')
     }
@@ -354,12 +395,64 @@ export default function LaunchWorkspacePage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       })
+      await recordActivity('milestone_created', 'Created milestone "' + values.title.trim() + '".')
       setNotice('Milestone added to the launch.')
     } catch {
       setError('Milestone could not be created. Only project managers and organisation admins can manage milestones.')
       throw new Error('Milestone could not be created.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const updateTask = async values => {
+    if (!editingTask || !canContribute) return
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const member = projectMembers.find(item => item.id === values.assigneeUid) || orgMembers.find(item => item.id === values.assigneeUid)
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', editingTask.id), {
+        title: values.title.trim(),
+        description: (values.description || '').trim(),
+        status: values.status,
+        priority: values.priority,
+        dueDate: values.dueDate || null,
+        milestoneId: values.milestoneId || null,
+        assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
+        assignedToUid: values.assigneeUid || null,
+        assignedToName: values.assigneeUid ? (member?.displayName || member?.email || (values.assigneeUid === user.uid ? user.email : 'Project member')) : null,
+        updatedAt: serverTimestamp()
+      })
+      await recordActivity('task_updated', 'Updated task "' + values.title.trim() + '".', editingTask.id)
+      setEditingTask(null)
+      setNotice('Task updated.')
+    } catch {
+      setError('Task could not be updated. Check your project permissions and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const saveReadiness = async checks => {
+    if (!canManageTeam || !project) return
+    setReadinessBusy(true)
+    setError('')
+    setNotice('')
+    const completed = checks.filter(item => item.complete).length
+    const readinessStatus = completed === checks.length ? 'ready' : completed > 0 ? 'in_progress' : 'not_started'
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId), {
+        readinessChecks: checks,
+        readinessStatus,
+        updatedAt: serverTimestamp()
+      })
+      await recordActivity('readiness_updated', 'Updated launch readiness to ' + readinessStatus.replace('_', ' ') + '.')
+      setNotice('Launch readiness saved.')
+    } catch {
+      setError('Readiness could not be saved. Only a project manager or organisation administrator can update it.')
+    } finally {
+      setReadinessBusy(false)
     }
   }
 
@@ -384,6 +477,9 @@ export default function LaunchWorkspacePage() {
       <div className="v2-launch-tabs" role="tablist" aria-label="Launch sections">
         <button role="tab" aria-selected={activeTab === 'tasks'} className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}><Icon name="list" size={15}/> Tasks <span>{tasks.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'milestones'} className={activeTab === 'milestones' ? 'active' : ''} onClick={() => setActiveTab('milestones')}><Icon name="flag" size={15}/> Milestones <span>{milestones.length}</span></button>
+        <button role="tab" aria-selected={activeTab === 'readiness'} className={activeTab === 'readiness' ? 'active' : ''} onClick={() => setActiveTab('readiness')}><Icon name="shield" size={15}/> Readiness</button>
+        <button role="tab" aria-selected={activeTab === 'files'} className={activeTab === 'files' ? 'active' : ''} onClick={() => setActiveTab('files')}><Icon name="folder" size={15}/> Files <span>{files.length}</span></button>
+        <button role="tab" aria-selected={activeTab === 'activity'} className={activeTab === 'activity' ? 'active' : ''} onClick={() => setActiveTab('activity')}><Icon name="clock" size={15}/> Activity <span>{activity.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'team'} className={activeTab === 'team' ? 'active' : ''} onClick={() => setActiveTab('team')}><Icon name="users" size={15}/> Team <span>{projectMembers.length}</span></button>
       </div>
 
@@ -393,9 +489,38 @@ export default function LaunchWorkspacePage() {
           {canContribute && <TaskForm milestones={milestones} members={projectMembers.filter(member => ['project_manager', 'contributor'].includes(member.role))} currentUserId={user?.uid} onCreate={createTask} busy={busy}/>}
           <div className="v2-task-filter">
             <strong>All tasks <span>{filteredTasks.length}</span></strong>
+            <div className="v2-task-view-switcher" role="group" aria-label="Task layout">
+              <button className={taskView === 'list' ? 'active' : ''} onClick={() => setTaskView('list')}>List</button>
+              <button className={taskView === 'board' ? 'active' : ''} onClick={() => setTaskView('board')}>Board</button>
+              <button className={taskView === 'timeline' ? 'active' : ''} onClick={() => setTaskView('timeline')}>Timeline</button>
+            </div>
             <select aria-label="Filter tasks by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All statuses</option>{taskStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
           </div>
-          {filteredTasks.length ? <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} readOnly={!canContribute}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : canContribute ? 'Create the first task for this launch using the form above.' : 'A project contributor can add the first task.'}</p></div></div>}
+          {filteredTasks.length ? taskView === 'board' ? (
+            <div className="v2-kanban-board">
+              {taskStatuses.map(status => {
+                const columnTasks = filteredTasks.filter(task => task.status === status.value)
+                return <section className="v2-kanban-column" key={status.value}>
+                  <div className="v2-kanban-column-heading"><strong>{status.label}</strong><span>{columnTasks.length}</span></div>
+                  {columnTasks.map(task => <article className="v2-kanban-card" key={task.id}>
+                    <strong>{task.title}</strong>
+                    <small>{task.priority || 'medium'} priority · {formatDate(task.dueDate)}</small>
+                    {task.assignedToName && <small>Assigned to {task.assignedToName}</small>}
+                    <div className="v2-kanban-actions">
+                      <select aria-label={'Change status for ' + task.title} value={task.status || 'todo'} disabled={!canContribute} onChange={event => changeTaskStatus(task.id, event.target.value)}>{taskStatuses.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
+                      <button className="v2-text-button" onClick={() => setActiveTask(task)}>Discussion</button>
+                      {canContribute && <button className="v2-text-button" onClick={() => setEditingTask(task)}>Edit</button>}
+                    </div>
+                  </article>)}
+                  {!columnTasks.length && <div className="v2-kanban-empty">No tasks</div>}
+                </section>
+              })}
+            </div>
+          ) : (
+            <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div>
+          ) : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : canContribute ? 'Create the first task for this launch using the form above.' : 'A project contributor can add the first task.'}</p></div></div>}
+          {editingTask && canContribute && <TaskEditor task={editingTask} milestones={milestones} members={projectMembers.filter(member => ['project_manager','contributor'].includes(member.role))} onSave={updateTask} onCancel={() => setEditingTask(null)} busy={busy}/>}
+          {activeTask && <TaskCommentsPanel orgId={selectedOrgId} projectId={projectId} task={activeTask} user={user} canComment={canContribute} canManage={canManageTeam} onActivity={recordActivity}/>}
           {!canContribute && <p className="v2-invite-footnote">You have read-only access to this launch.</p>}
         </section>
       ) : activeTab === 'milestones' ? (
@@ -404,6 +529,12 @@ export default function LaunchWorkspacePage() {
           {canManageTeam && <MilestoneForm onCreate={createMilestone} busy={busy}/>}
           {milestones.length ? <div className="v2-milestone-grid">{milestones.map(item => <MilestoneCard key={item.id} milestone={item} tasks={tasks}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="flag" size={17}/></span><div><strong>No milestones defined</strong><p>Add key deliverables such as product approval, QA sign-off and go-to-market readiness.</p></div></div>}
         </section>
+      ) : activeTab === 'readiness' ? (
+        <ReadinessPanel project={project} canManage={canManageTeam} onSave={saveReadiness} busy={readinessBusy}/>
+      ) : activeTab === 'files' ? (
+        <ProjectFilesPanel orgId={selectedOrgId} projectId={projectId} user={user} canUpload={canContribute} canDelete={canManageTeam} onActivity={recordActivity}/>
+      ) : activeTab === 'activity' ? (
+        <ProjectActivityPanel items={activity}/>
       ) : (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch team</h2><p>Control which organisation members can view or contribute to this launch.</p></div></div>
