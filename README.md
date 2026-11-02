@@ -15,7 +15,8 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 - Organisation team creation and member assignment.
 - Launch creation and organisation launch listing.
 - Launch workspace with task creation, editing, priorities, due dates, milestone linking and status updates.
-- Task list, Kanban board and due-date timeline views.
+- Task list, draggable Kanban board, due-date timeline and monthly calendar views.
+- Subtasks with completion tracking and role-controlled task deletion.
 - Task discussions using project-scoped comments.
 - Project file uploads and downloads with a 10 MB limit and role-scoped Storage access.
 - Evidence notes and completion checks in the launch-readiness checklist.
@@ -23,7 +24,8 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 - Live organisation-wide My Tasks, Milestones and Reports pages.
 - Notifications inbox for records already written to the user's notification collection.
 - Organisation name settings for owners and administrators.
-- Milestone creation and task-linked milestone progress.
+- Milestone creation, editing, status updates and task-linked milestone progress.
+- Assign organisation teams to each launch.
 - Responsive layouts and light/dark design tokens.
 - Tenant-scoped Firestore and Firebase Storage rule baselines.
 - GitHub Actions production build check.
