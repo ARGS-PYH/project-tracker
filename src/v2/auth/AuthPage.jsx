@@ -34,7 +34,7 @@ export default function AuthPage({ mode = 'login' }) {
     try {
       if (isSignup) {
         await signUp({ name, email, password })
-        setNotice('Your account is created. Verify your email address to continue.')
+        navigate('/app', { replace: true })
       } else {
         await signIn(email, password)
         navigate('/app', { replace: true })
