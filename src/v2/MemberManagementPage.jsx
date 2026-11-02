@@ -16,7 +16,6 @@ export default function MemberManagementPage() {
   const [invitations, setInvitations] = useState([])
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState('member')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -65,6 +64,11 @@ export default function MemberManagementPage() {
       setBusy(false)
       return
     }
+    if (invitations.some(invitation => invitation.email?.toLowerCase() === cleanEmail && invitation.status === 'pending' && (!invitation.expiresAt?.toDate || invitation.expiresAt.toDate() > new Date()))) {
+      setError('There is already a pending invitation for this email address.')
+      setBusy(false)
+      return
+    }
     try {
       const invitationRef = doc(collection(db, 'organisations', selectedOrgId, 'invitations'))
       const expiresAt = Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))
@@ -72,7 +76,7 @@ export default function MemberManagementPage() {
         organisationId: selectedOrgId,
         orgName: selectedOrganisation?.name || '',
         email: cleanEmail,
-        role,
+        role: 'member',
         status: 'pending',
         createdBy: user.uid,
         createdByName: user.displayName || user.email || 'Workspace admin',
@@ -82,7 +86,6 @@ export default function MemberManagementPage() {
       setInviteLink(window.location.origin + '/invite/' + selectedOrgId + '/' + invitationRef.id)
       setNotice('Invitation created. Copy the link and share it with ' + cleanEmail + '.')
       setEmail('')
-      setRole('member')
     } catch {
       setError('Invitation could not be created. Only organisation owners and admins can invite members.')
     } finally {
@@ -129,7 +132,7 @@ export default function MemberManagementPage() {
         <div className="v2-panel-heading"><div><h2>Invite someone</h2><p>Create a secure invitation link. It can only be accepted by the invited, verified email account.</p></div><span className="v2-panel-icon"><Icon name="user" size={18}/></span></div>
         <form className="v2-member-invite-form" onSubmit={createInvitation}>
           <label className="v2-field"><span>Email address</span><input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="colleague@company.com"/></label>
-          <label className="v2-field"><span>Organisation role</span><select value={role} onChange={e => setRole(e.target.value)}><option value="member">Member — collaborate across the organisation</option><option value="guest">Guest — access only assigned projects</option></select></label>
+          <div className="v2-field"><span>Invitation role</span><div className="v2-readonly-role"><RolePill role="member"/><small>Members can collaborate across organisation launches. Project-specific guest access will be enabled with project sharing.</small></div></div>
           <button className="v2-button v2-button-primary" disabled={busy}>{busy ? 'Creating…' : 'Create invitation'} <Icon name="plus" size={15}/></button>
         </form>
         {inviteLink && <div className="v2-invite-link-box"><div><strong>Invitation link ready</strong><span>{inviteLink}</span></div><button className="v2-button v2-button-secondary" onClick={copyLink}><Icon name="copy" size={15}/> Copy link</button></div>}
