@@ -14,6 +14,7 @@ export default function App() {
           <Route path="/create" element={<CreateProjectPage />} />
           <Route path="/project/:projectId" element={<ProjectPage />} />
           <Route path="/app/*" element={<V2App />} />
+          <Route path="/invite/:orgId/:inviteId" element={<V2App />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
