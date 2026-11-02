@@ -38,6 +38,7 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Activity is written by authenticated project contributors and is append-only; it has not yet been independently audited.
 - Notifications are read from the user's notification collection, but event generation, delivery preferences and email/push delivery remain incomplete.
 - Organisation teams can be assigned to launches; team-specific task filters remain incomplete.
+- Launch names, descriptions and target dates are editable by project managers and organisation administrators.
 - Invitation links are shareable manually; automated invitation email delivery remains incomplete.
 - Existing Express endpoints have not yet been redesigned for organisation-scoped, authenticated actions.
 - Firestore and Storage rules have not yet been verified with automated emulator tests; the new task comments, activity and file paths still need emulator coverage.
