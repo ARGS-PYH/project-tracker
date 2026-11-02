@@ -26,7 +26,7 @@ export default function AuthPage({ mode = 'login' }) {
       setError('Enter your name to create an account.')
       return
     }
-    if (password.length < 8) {
+    if (isSignup && password.length < 8) {
       setError('Use a password with at least 8 characters.')
       return
     }
