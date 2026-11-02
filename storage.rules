@@ -1,0 +1,56 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function orgMember(orgId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid)).data.status == 'active'
+        && firestore.get(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid)).data.role in ['owner', 'admin', 'member'];
+    }
+
+    function projectMember(orgId, projectId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function orgAdmin(orgId) {
+      return orgMember(orgId)
+        && firestore.get(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
+    }
+
+    function projectManager(orgId, projectId) {
+      return orgAdmin(orgId)
+        || (projectMember(orgId, projectId)
+          && firestore.get(/databases/(default)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(request.auth.uid)).data.role == 'project_manager');
+    }
+
+    function canUpload(orgId, projectId) {
+      return orgAdmin(orgId)
+        || (projectMember(orgId, projectId)
+          && firestore.get(/databases/(default)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(request.auth.uid)).data.role in ['project_manager', 'contributor']);
+    }
+
+    function allowedFile() {
+      return request.resource != null
+        && request.resource.size <= 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp|gif)|application/pdf|text/plain|application/zip|application/vnd.openxmlformats-officedocument.wordprocessingml.document|application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+
+    match /organisations/{orgId}/projects/{projectId}/{filePath=**} {
+      // Organisation members have the same read visibility as Firestore;
+      // project guests can read only files in explicitly shared projects.
+      allow read: if orgMember(orgId) || projectMember(orgId, projectId);
+      allow create: if canUpload(orgId, projectId) && allowedFile();
+      allow update: if canUpload(orgId, projectId) && allowedFile();
+      allow delete: if projectManager(orgId, projectId);
+    }
+
+    // No other storage paths are accessible from client applications.
+  }
+}

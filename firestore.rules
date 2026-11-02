@@ -2,8 +2,321 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+    function signedIn() {
+      return request.auth != null;
     }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function memberPath(orgId, uid) {
+      return /databases/$(database)/documents/organisations/$(orgId)/members/$(uid);
+    }
+
+    function isOrgMember(orgId) {
+      return signedIn()
+        && exists(memberPath(orgId, request.auth.uid))
+        && get(memberPath(orgId, request.auth.uid)).data.status == 'active'
+        && get(memberPath(orgId, request.auth.uid)).data.role in ['owner', 'admin', 'member'];
+    }
+
+    function orgRole(orgId) {
+      return get(memberPath(orgId, request.auth.uid)).data.role;
+    }
+
+    function isOrgOwner(orgId) {
+      return isOrgMember(orgId) && orgRole(orgId) == 'owner';
+    }
+
+    function isOrgAdmin(orgId) {
+      return isOrgMember(orgId) && orgRole(orgId) in ['owner', 'admin'];
+    }
+
+    function canCreateProject(orgId) {
+      return isOrgMember(orgId) && orgRole(orgId) in ['owner', 'admin', 'member'];
+    }
+
+    function projectMemberPath(orgId, projectId, uid) {
+      return /databases/$(database)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(uid);
+    }
+
+    function invitationPath(orgId, invitationId) {
+      return /databases/$(database)/documents/organisations/$(orgId)/invitations/$(invitationId);
+    }
+
+    function isValidInviteTarget(orgId, invitationId) {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && exists(invitationPath(orgId, invitationId))
+        && get(invitationPath(orgId, invitationId)).data.status == 'pending'
+        && get(invitationPath(orgId, invitationId)).data.email == request.auth.token.email
+        && get(invitationPath(orgId, invitationId)).data.expiresAt > request.time;
+    }
+
+    function isProjectMember(orgId, projectId) {
+      return signedIn()
+        && exists(projectMemberPath(orgId, projectId, request.auth.uid))
+        && get(projectMemberPath(orgId, projectId, request.auth.uid)).data.status == 'active';
+    }
+
+    function projectRole(orgId, projectId) {
+      return get(projectMemberPath(orgId, projectId, request.auth.uid)).data.role;
+    }
+
+    function canReadProject(orgId, projectId) {
+      // Standard organisation members can collaborate across the organisation.
+      // Guest users must have explicit membership in the requested project.
+      return isOrgMember(orgId) || isProjectMember(orgId, projectId);
+    }
+
+    function canManageProject(orgId, projectId) {
+      return isOrgAdmin(orgId)
+        || (isProjectMember(orgId, projectId) && projectRole(orgId, projectId) == 'project_manager');
+    }
+
+    function canContributeToProject(orgId, projectId) {
+      return canManageProject(orgId, projectId)
+        || (isProjectMember(orgId, projectId) && projectRole(orgId, projectId) == 'contributor');
+    }
+
+    match /users/{uid} {
+      allow read, create, update: if isSelf(uid);
+      allow delete: if false;
+
+      match /organisations/{orgId} {
+        // This is a navigation index, never the source of authority. Users may
+        // manage their own index; an organisation admin may delete another
+        // member's stale index while revoking that membership.
+        allow read: if isSelf(uid);
+        allow create: if isSelf(uid) || (isOrgAdmin(orgId) && request.resource.data.keys().hasOnly(['name']));
+        allow update: if isSelf(uid) || (isOrgAdmin(orgId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name']));
+        allow delete: if isSelf(uid) || (isOrgAdmin(orgId) && uid != request.auth.uid);
+      }
+
+      match /personalTasks/{taskId} {
+        allow read, create, update, delete: if isSelf(uid);
+      }
+
+      match /notifications/{notificationId} {
+        allow read, delete: if isSelf(uid);
+        allow update: if isSelf(uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt'])
+          && request.resource.data.read is bool;
+        allow create: if false;
+      }
+    }
+
+    match /organisations/{orgId} {
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 2
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.status == 'active';
+
+      allow read: if isOrgMember(orgId);
+      allow update: if isOrgAdmin(orgId)
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if isOrgOwner(orgId);
+
+      match /members/{memberUid} {
+        // A user may verify their own canonical membership (including guest
+        // access); listing the organisation roster remains member/admin-only.
+        allow get: if isOrgMember(orgId) || (signedIn() && request.auth.uid == memberUid);
+        allow list: if isOrgMember(orgId);
+
+        // Initial owner membership must be created in the same atomic batch as
+        // the organisation document, whose ownerUid is the signed-in user.
+        allow create: if (
+            signedIn()
+            && memberUid == request.auth.uid
+            && getAfter(/databases/$(database)/documents/organisations/$(orgId)).data.ownerUid == request.auth.uid
+            && request.resource.data.uid == memberUid
+            && request.resource.data.role == 'owner'
+            && request.resource.data.status == 'active'
+          ) || (
+            memberUid == request.auth.uid
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.role == 'member'
+            && request.resource.data.status == 'active'
+            && request.resource.data.invitationId is string
+            && isValidInviteTarget(orgId, request.resource.data.invitationId)
+            && get(invitationPath(orgId, request.resource.data.invitationId)).data.role == request.resource.data.role
+            && getAfter(invitationPath(orgId, request.resource.data.invitationId)).data.status == 'accepted'
+            && getAfter(invitationPath(orgId, request.resource.data.invitationId)).data.acceptedUid == request.auth.uid
+          );
+
+        allow update: if request.resource.data.uid == memberUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'roleUpdatedAt', 'roleUpdatedBy'])
+          && (
+            (
+              isOrgOwner(orgId)
+              && resource.data.role != 'owner'
+              && request.resource.data.role in ['admin', 'member', 'guest']
+            )
+            || (
+              isOrgAdmin(orgId)
+              && resource.data.role != 'owner'
+              && request.resource.data.role in ['member', 'guest']
+            )
+          );
+        allow delete: if isOrgAdmin(orgId)
+          && memberUid != request.auth.uid
+          && resource.data.role != 'owner';
+
+        // Project index entries are visible only to their associated user.
+        // Organisation admins and project managers can maintain the index when
+        // granting or revoking explicit project membership.
+        match /projects/{projectId} {
+          allow read: if signedIn() && request.auth.uid == memberUid;
+          allow create, update: if (
+              isOrgAdmin(orgId) || canManageProject(orgId, projectId)
+            )
+            && request.resource.data.projectId == projectId
+            && request.resource.data.organisationId == orgId
+            && request.resource.data.uid == memberUid;
+          allow delete: if isOrgAdmin(orgId) || canManageProject(orgId, projectId);
+        }
+      }
+
+      match /teams/{teamId} {
+        allow read: if isOrgMember(orgId);
+        allow create, update, delete: if isOrgAdmin(orgId);
+      }
+
+      match /invitations/{invitationId} {
+        allow list: if isOrgAdmin(orgId);
+        allow get: if isOrgAdmin(orgId) || (
+          signedIn()
+          && request.auth.token.email_verified == true
+          && resource.data.status == 'pending'
+          && resource.data.email == request.auth.token.email
+          && resource.data.expiresAt > request.time
+        );
+        allow create: if isOrgAdmin(orgId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.email is string
+          && request.resource.data.role == 'member'
+          && request.resource.data.status == 'pending'
+          && request.resource.data.expiresAt > request.time;
+        allow update: if (
+            isOrgAdmin(orgId)
+            && resource.data.status == 'pending'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status == 'revoked'
+          ) || (
+            isValidInviteTarget(orgId, invitationId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedUid', 'acceptedAt'])
+            && request.resource.data.status == 'accepted'
+            && request.resource.data.acceptedUid == request.auth.uid
+            && existsAfter(memberPath(orgId, request.auth.uid))
+            && getAfter(memberPath(orgId, request.auth.uid)).data.invitationId == invitationId
+          );
+        allow delete: if isOrgAdmin(orgId);
+      }
+
+      match /projects/{projectId} {
+        allow create: if canCreateProject(orgId)
+          && request.resource.data.organisationId == orgId
+          && request.resource.data.ownerUid == request.auth.uid;
+
+        allow read: if canReadProject(orgId, projectId);
+        allow update: if canManageProject(orgId, projectId)
+          && request.resource.data.organisationId == resource.data.organisationId
+          && request.resource.data.ownerUid == resource.data.ownerUid;
+        allow delete: if isOrgAdmin(orgId);
+
+        match /members/{projectMemberUid} {
+          allow read: if canReadProject(orgId, projectId);
+          allow create: if (
+              isOrgAdmin(orgId)
+              && request.resource.data.uid == projectMemberUid
+              && request.resource.data.role in ['project_manager', 'contributor', 'viewer']
+            ) || (
+              canManageProject(orgId, projectId)
+              && request.resource.data.uid == projectMemberUid
+              && request.resource.data.role in ['contributor', 'viewer']
+            ) || (
+              signedIn()
+              && projectMemberUid == request.auth.uid
+              && request.resource.data.uid == request.auth.uid
+              && request.resource.data.role == 'project_manager'
+              && getAfter(/databases/$(database)/documents/organisations/$(orgId)/projects/$(projectId)).data.ownerUid == request.auth.uid
+            );
+          allow update: if request.resource.data.uid == projectMemberUid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'status', 'updatedAt'])
+            && (
+              (
+                isOrgAdmin(orgId)
+                && request.resource.data.role in ['project_manager', 'contributor', 'viewer']
+              )
+              || (
+                canManageProject(orgId, projectId)
+                && resource.data.role != 'project_manager'
+                && request.resource.data.role in ['contributor', 'viewer']
+              )
+            );
+          allow delete: if isOrgAdmin(orgId)
+            || (canManageProject(orgId, projectId) && resource.data.role != 'project_manager');
+        }
+
+        match /milestones/{milestoneId} {
+          allow read: if canReadProject(orgId, projectId);
+          allow create, update, delete: if canManageProject(orgId, projectId);
+        }
+
+        match /tasks/{taskId} {
+          allow read: if canReadProject(orgId, projectId);
+          allow create, update: if canContributeToProject(orgId, projectId);
+          allow delete: if canManageProject(orgId, projectId);
+
+          match /comments/{commentId} {
+            allow read: if canReadProject(orgId, projectId);
+            allow create: if canContributeToProject(orgId, projectId)
+              && request.resource.data.authorUid == request.auth.uid;
+            allow update, delete: if canManageProject(orgId, projectId)
+              || (canContributeToProject(orgId, projectId) && resource.data.authorUid == request.auth.uid);
+          }
+        }
+
+        match /activity/{activityId} {
+          allow read: if canReadProject(orgId, projectId);
+          // Authenticated project contributors can append events only as themselves.
+          // Events are immutable after creation so another user cannot rewrite history.
+          allow create: if canContributeToProject(orgId, projectId)
+            && request.resource.data.actorUid == request.auth.uid
+            && request.resource.data.actorName is string
+            && request.resource.data.message is string
+            && request.resource.data.message.size() <= 240
+            && request.resource.data.entityId is string
+            && request.resource.data.type in [
+              'task_created',
+              'task_updated',
+              'task_status_changed',
+              'task_deleted',
+              'milestone_created',
+              'milestone_status_changed',
+              'milestone_updated',
+              'launch_status_changed',
+              'comment_added',
+              'file_uploaded',
+              'readiness_updated',
+              'teams_assigned',
+              'project_settings_updated'
+            ]
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
+        }
+
+        match /files/{fileId} {
+          allow read: if canReadProject(orgId, projectId);
+          allow create, update: if canContributeToProject(orgId, projectId);
+          allow delete: if canManageProject(orgId, projectId);
+        }
+      }
+    }
+
+    // All unspecified collections and documents are denied by default.
   }
 }
