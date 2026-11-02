@@ -130,7 +130,7 @@ service cloud.firestore {
           ) || (
             memberUid == request.auth.uid
             && request.resource.data.uid == request.auth.uid
-            && request.resource.data.role in ['member', 'guest']
+            && request.resource.data.role == 'member'
             && request.resource.data.status == 'active'
             && request.resource.data.invitationId is string
             && isValidInviteTarget(orgId, request.resource.data.invitationId)
@@ -174,11 +174,12 @@ service cloud.firestore {
         allow create: if isOrgAdmin(orgId)
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.email is string
-          && request.resource.data.role in ['member', 'guest']
+          && request.resource.data.role == 'member'
           && request.resource.data.status == 'pending'
           && request.resource.data.expiresAt > request.time;
         allow update: if (
             isOrgAdmin(orgId)
+            && resource.data.status == 'pending'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
             && request.resource.data.status == 'revoked'
           ) || (
