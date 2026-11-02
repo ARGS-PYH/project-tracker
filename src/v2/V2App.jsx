@@ -8,6 +8,7 @@ import LaunchWorkspacePage from './LaunchWorkspacePage.jsx'
 import InviteAcceptancePage from './InviteAcceptancePage.jsx'
 import MemberManagementPage from './MemberManagementPage.jsx'
 import TeamManagementPage from './TeamManagementPage.jsx'
+import { MyTasksPage, MilestonesPage, ReportsPage, NotificationsPage, OrganisationSettingsPage } from './AdvancedWorkspacePages.jsx'
 import {
   LaunchesPage,
   NewLaunchPage,
@@ -47,12 +48,12 @@ function V2Routes() {
           <Route path="launches" element={<LaunchesPage/>}/>
           <Route path="launches/new" element={<NewLaunchPage/>}/>
           <Route path="launches/:projectId" element={<LaunchWorkspacePage/>}/>
-          <Route path="tasks" element={<PlaceholderPage title="My tasks" description="One place for the work assigned to you across your projects."/>}/>
-          <Route path="milestones" element={<PlaceholderPage title="Milestones" description="Track the deliverables that move your launches forward."/>}/>
+          <Route path="tasks" element={<MyTasksPage/>}/>
+          <Route path="milestones" element={<MilestonesPage/>}/>
           <Route path="teams" element={<TeamManagementPage/>}/>
-          <Route path="reports" element={<PlaceholderPage title="Reports" description="Understand launch progress, delays and delivery performance."/>}/>
-          <Route path="notifications" element={<PlaceholderPage title="Notifications" description="Stay informed about assignments, deadlines, approvals and launch activity."/>}/>
-          <Route path="settings" element={<PlaceholderPage title="Organisation settings" description="Manage organisation details, preferences and workspace configuration."/>}/>
+          <Route path="reports" element={<ReportsPage/>}/>
+          <Route path="notifications" element={<NotificationsPage/>}/>
+          <Route path="settings" element={<OrganisationSettingsPage/>}/>
           <Route path="members" element={<MemberManagementPage/>}/>
           <Route path="*" element={<Navigate to="/app/overview" replace/>}/>
         </Route>
