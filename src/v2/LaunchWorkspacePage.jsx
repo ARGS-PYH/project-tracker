@@ -298,7 +298,6 @@ export default function LaunchWorkspacePage() {
     setNotice('')
     try {
       await addDoc(collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks'), {
-        ...values,
         title: values.title.trim(),
         description: values.description.trim(),
         status: 'todo',
@@ -391,7 +390,7 @@ export default function LaunchWorkspacePage() {
       {activeTab === 'tasks' ? (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch tasks</h2><p>Track the work required to move this launch forward.</p></div></div>
-          {canContribute && <TaskForm milestones={milestones} members={projectMembers} currentUserId={user?.uid} onCreate={createTask} busy={busy}/ >}
+          {canContribute && <TaskForm milestones={milestones} members={projectMembers.filter(member => ['project_manager', 'contributor'].includes(member.role))} currentUserId={user?.uid} onCreate={createTask} busy={busy}/>}
           <div className="v2-task-filter">
             <strong>All tasks <span>{filteredTasks.length}</span></strong>
             <select aria-label="Filter tasks by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All statuses</option>{taskStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
