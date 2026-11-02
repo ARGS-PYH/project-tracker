@@ -32,6 +32,51 @@ function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
 }
 
+function dateKey(date) {
+  return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0')
+}
+
+function MonthCalendar({ tasks, milestones, month, onMonthChange, onOpenTask }) {
+  const year = month.getFullYear()
+  const monthIndex = month.getMonth()
+  const first = new Date(year, monthIndex, 1)
+  const offset = (first.getDay() + 6) % 7
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(year, monthIndex, index - offset + 1)
+    return { date: day, key: dateKey(day), inMonth: day.getMonth() === monthIndex }
+  })
+  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const title = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(month)
+  return (
+    <div className="v2-calendar">
+      <div className="v2-calendar-toolbar">
+        <strong>{title}</strong>
+        <div>
+          <button type="button" className="v2-button v2-button-secondary" onClick={() => onMonthChange(new Date(year, monthIndex - 1, 1))}>Previous</button>
+          <button type="button" className="v2-button v2-button-secondary" onClick={() => onMonthChange(new Date(year, monthIndex + 1, 1))}>Next</button>
+          <button type="button" className="v2-button v2-button-secondary" onClick={() => onMonthChange(new Date())}>Today</button>
+        </div>
+      </div>
+      <div className="v2-calendar-grid">
+        {labels.map(label => <div className="v2-calendar-weekday" key={label}>{label}</div>)}
+        {days.map(day => {
+          const dayTasks = tasks.filter(task => task.dueDate === day.key)
+          const dayMilestones = milestones.filter(item => item.dueDate === day.key)
+          return <div className={'v2-calendar-day' + (!day.inMonth ? ' outside' : '')} key={day.key}>
+            <span className="v2-calendar-day-number">{day.date.getDate()}</span>
+            <div className="v2-calendar-events">
+              {dayTasks.slice(0, 3).map(task => <button type="button" className={'v2-calendar-event task status-' + (task.status || 'todo')} key={task.id} onClick={() => onOpenTask(task)} title={task.title}>{task.title}</button>)}
+              {dayMilestones.slice(0, 2).map(item => <span className="v2-calendar-event milestone" key={item.id} title={item.title}>{item.title}</span>)}
+              {dayTasks.length + dayMilestones.length > 5 && <small>+{dayTasks.length + dayMilestones.length - 5} more</small>}
+            </div>
+          </div>
+        })}
+      </div>
+      <p className="v2-calendar-note">Select a task to open its discussion. Milestone dates are shown in purple.</p>
+    </div>
+  )
+}
+
 function StatusPill({ value }) {
   const status = taskStatuses.find(item => item.value === value) || taskStatuses[0]
   return <span className={'v2-task-status status-' + status.value}>{status.label}</span>
@@ -127,7 +172,31 @@ function MilestoneForm({ onCreate, busy }) {
   )
 }
 
-function MilestoneCard({ milestone, tasks, canManage, onStatusChange }) {
+function MilestoneEditor({ milestone, onSave, onCancel, busy }) {
+  const [title, setTitle] = useState(milestone?.title || '')
+  const [description, setDescription] = useState(milestone?.description || '')
+  const [dueDate, setDueDate] = useState(typeof milestone?.dueDate === 'string' ? milestone.dueDate : '')
+  useEffect(() => {
+    setTitle(milestone?.title || '')
+    setDescription(milestone?.description || '')
+    setDueDate(typeof milestone?.dueDate === 'string' ? milestone.dueDate : '')
+  }, [milestone?.id])
+  const submit = event => {
+    event.preventDefault()
+    onSave({ title, description, dueDate })
+  }
+  return (
+    <form className="v2-inline-create v2-task-edit-form" onSubmit={submit}>
+      <div className="v2-inline-create-heading"><strong>Edit milestone</strong><span>Update the checkpoint description and target date.</span></div>
+      <label className="v2-field"><span>Milestone name *</span><input value={title} onChange={event => setTitle(event.target.value)} required minLength={2} maxLength={120}/></label>
+      <label className="v2-field"><span>Description</span><textarea value={description} onChange={event => setDescription(event.target.value)} rows={2} maxLength={1200}/></label>
+      <label className="v2-field"><span>Target date</span><input type="date" value={dueDate} onChange={event => setDueDate(event.target.value)}/></label>
+      <div className="v2-form-actions"><button type="button" className="v2-button v2-button-secondary" onClick={onCancel} disabled={busy}>Cancel</button><button className="v2-button v2-button-primary" disabled={busy || title.trim().length < 2}>{busy ? 'Saving…' : 'Save milestone'} <Icon name="check" size={15}/></button></div>
+    </form>
+  )
+}
+
+function MilestoneCard({ milestone, tasks, canManage, onStatusChange, onEdit }) {
   const related = tasks.filter(task => task.milestoneId === milestone.id)
   const completed = related.filter(task => task.status === 'done').length
   const percent = related.length ? Math.round(completed / related.length * 100) : 0
@@ -137,7 +206,7 @@ function MilestoneCard({ milestone, tasks, canManage, onStatusChange }) {
       <strong>{milestone.title}</strong>
       {milestone.description && <p>{milestone.description}</p>}
       <div className="v2-launch-progress"><div className="v2-launch-progress-label"><span>{completed} of {related.length} linked tasks complete</span><strong>{percent}%</strong></div><div className="v2-progress-track"><span style={{width: percent + '%'}}/></div></div>
-      <div className="v2-milestone-status-row"><span>Checkpoint status</span>{canManage ? <select value={milestone.status || 'not_started'} onChange={event => onStatusChange(milestone, event.target.value)}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="complete">Complete</option></select> : <strong>{(milestone.status || 'not_started').replace('_',' ')}</strong>}</div>
+      <div className="v2-milestone-status-row"><span>Checkpoint status</span>{canManage ? <select value={milestone.status || 'not_started'} onChange={event => onStatusChange(milestone, event.target.value)}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="complete">Complete</option></select> : <strong>{(milestone.status || 'not_started').replace('_',' ')}</strong>}</div>{canManage && <div className="v2-milestone-card-actions"><button type="button" className="v2-text-button" onClick={() => onEdit(milestone)}>Edit details</button></div>}
     </article>
   )
 }
@@ -155,7 +224,9 @@ export default function LaunchWorkspacePage() {
   const [teamBusy, setTeamBusy] = useState(false)
   const [activeTab, setActiveTab] = useState('tasks')
   const [taskView, setTaskView] = useState('list')
+  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1))
   const [editingTask, setEditingTask] = useState(null)
+  const [editingMilestone, setEditingMilestone] = useState(null)
   const [activeTask, setActiveTask] = useState(null)
   const [files, setFiles] = useState([])
   const [activity, setActivity] = useState([])
@@ -185,6 +256,7 @@ export default function LaunchWorkspacePage() {
     setActivity([])
     setActiveTask(null)
     setEditingTask(null)
+    setEditingMilestone(null)
     let tasksReady = false
     let milestonesReady = false
     let projectMembersReady = false
@@ -359,6 +431,7 @@ export default function LaunchWorkspacePage() {
         priority: values.priority,
         dueDate: values.dueDate || null,
         milestoneId: values.milestoneId || null,
+        subtasks: [],
         assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
         assignedToUid: values.assigneeUid || null,
         assignedToName: values.assigneeUid
@@ -438,6 +511,28 @@ export default function LaunchWorkspacePage() {
     }
   }
 
+  const updateMilestone = async values => {
+    if (!editingMilestone || !canManageTeam) return
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'milestones', editingMilestone.id), {
+        title: values.title.trim(),
+        description: values.description.trim(),
+        dueDate: values.dueDate || null,
+        updatedAt: serverTimestamp()
+      })
+      await recordActivity('milestone_updated', 'Updated milestone "' + values.title.trim() + '".', editingMilestone.id)
+      setEditingMilestone(null)
+      setNotice('Milestone updated.')
+    } catch {
+      setError('Milestone could not be updated. Check your project permissions.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const changeLaunchStatus = async status => {
     if (!canManageTeam) return
     setError('')
@@ -468,6 +563,7 @@ export default function LaunchWorkspacePage() {
         priority: values.priority,
         dueDate: values.dueDate || null,
         milestoneId: values.milestoneId || null,
+        subtasks: Array.isArray(values.subtasks) ? values.subtasks : [],
         assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
         assignedToUid: values.assigneeUid || null,
         assignedToName: values.assigneeUid ? (member?.displayName || member?.email || (values.assigneeUid === user.uid ? user.email : 'Project member')) : null,
@@ -542,6 +638,7 @@ export default function LaunchWorkspacePage() {
               <button className={taskView === 'list' ? 'active' : ''} onClick={() => setTaskView('list')}>List</button>
               <button className={taskView === 'board' ? 'active' : ''} onClick={() => setTaskView('board')}>Board</button>
               <button className={taskView === 'timeline' ? 'active' : ''} onClick={() => setTaskView('timeline')}>Timeline</button>
+              <button className={taskView === 'calendar' ? 'active' : ''} onClick={() => setTaskView('calendar')}>Calendar</button>
             </div>
             <select aria-label="Filter tasks by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All statuses</option>{taskStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
           </div>
@@ -567,6 +664,8 @@ export default function LaunchWorkspacePage() {
             </div>
           ) : taskView === 'timeline' ? (
             <div className="v2-task-timeline">{timelineGroups.map(([date, groupedTasks]) => <section className="v2-task-timeline-group" key={date}><div className="v2-task-timeline-date"><Icon name="calendar" size={15}/><strong>{formatDate(date)}</strong><span>{groupedTasks.length} tasks</span></div><div className="v2-task-list">{groupedTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div></section>)}</div>
+          ) : taskView === 'calendar' ? (
+            <MonthCalendar tasks={tasks} milestones={milestones} month={calendarMonth} onMonthChange={setCalendarMonth} onOpenTask={setActiveTask}/>
           ) : (
             <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div>
           ) : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : canContribute ? 'Create the first task for this launch using the form above.' : 'A project contributor can add the first task.'}</p></div></div>}
@@ -578,7 +677,9 @@ export default function LaunchWorkspacePage() {
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch milestones</h2><p>Define important delivery checkpoints and see the tasks linked to each one.</p></div></div>
           {canManageTeam && <MilestoneForm onCreate={createMilestone} busy={busy}/>}
-          {milestones.length ? <div className="v2-milestone-grid">{milestones.map(item => <MilestoneCard key={item.id} milestone={item} tasks={tasks} canManage={canManageTeam} onStatusChange={changeMilestoneStatus}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="flag" size={17}/></span><div><strong>No milestones defined</strong><p>Add key deliverables such as product approval, QA sign-off and go-to-market readiness.</p></div></div>}
+          {milestones.length ? <div className="v2-milestone-grid">{milestones.map(item => <MilestoneCard key={item.id} milestone={item} tasks={tasks} canManage={canManageTeam} onStatusChange={changeMilestoneStatus} onEdit={setEditingMilestone}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="flag" size={17}/></span><div><strong>No milestones defined</strong><p>Add key deliverables such as product approval, QA sign-off and go-to-market readiness.</p></div></div>}
+          {editingMilestone && canManageTeam && <MilestoneEditor milestone={editingMilestone} onSave={updateMilestone} onCancel={() => setEditingMilestone(null)} busy={busy}/>}
+
         </section>
       ) : activeTab === 'readiness' ? (
         <ReadinessPanel project={project} canManage={canManageTeam} onSave={saveReadiness} busy={readinessBusy}/>
