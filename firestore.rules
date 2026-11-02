@@ -272,8 +272,25 @@ service cloud.firestore {
 
         match /activity/{activityId} {
           allow read: if canReadProject(orgId, projectId);
-          // Activity is append-only and is written by trusted backend code.
-          allow create, update, delete: if false;
+          // Authenticated project contributors can append events only as themselves.
+          // Events are immutable after creation so another user cannot rewrite history.
+          allow create: if canContributeToProject(orgId, projectId)
+            && request.resource.data.actorUid == request.auth.uid
+            && request.resource.data.actorName is string
+            && request.resource.data.message is string
+            && request.resource.data.message.size() <= 240
+            && request.resource.data.entityId is string
+            && request.resource.data.type in [
+              'task_created',
+              'task_updated',
+              'task_status_changed',
+              'milestone_created',
+              'comment_added',
+              'file_uploaded',
+              'readiness_updated'
+            ]
+            && request.resource.data.createdAt == request.time;
+          allow update, delete: if false;
         }
 
         match /files/{fileId} {
