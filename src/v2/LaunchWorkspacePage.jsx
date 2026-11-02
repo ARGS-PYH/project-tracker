@@ -177,6 +177,14 @@ export default function LaunchWorkspacePage() {
       return undefined
     }
     setLoading(true)
+    setTasks([])
+    setMilestones([])
+    setProjectMembers([])
+    setOrgMembers([])
+    setFiles([])
+    setActivity([])
+    setActiveTask(null)
+    setEditingTask(null)
     let tasksReady = false
     let milestonesReady = false
     let projectMembersReady = false
