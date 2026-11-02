@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 
@@ -19,6 +19,7 @@ export function WorkspaceProvider({ children }) {
   const [organisationLoading, setOrganisationLoading] = useState(true)
   const [projectsLoading, setProjectsLoading] = useState(false)
   const [error, setError] = useState('')
+  const selectedOrganisation = organisations.find(item => item.id === selectedOrgId) || null
 
   useEffect(() => {
     if (!user?.uid || !user.emailVerified) {
@@ -56,8 +57,48 @@ export function WorkspaceProvider({ children }) {
       setProjectsLoading(false)
       return undefined
     }
+    if (organisationLoading) return undefined
 
     setProjectsLoading(true)
+
+    // Guests only query their own explicit project access index. Standard
+    // organisation members can query the organisation's launch summaries.
+    if (selectedOrganisation?.role === 'guest') {
+      let active = true
+      let requestVersion = 0
+      const indexRef = collection(db, 'organisations', selectedOrgId, 'members', user.uid, 'projects')
+      const unsubscribe = onSnapshot(indexRef, async snapshot => {
+        const version = ++requestVersion
+        try {
+          const projectSnapshots = await Promise.all(snapshot.docs.map(item =>
+            getDoc(doc(db, 'organisations', selectedOrgId, 'projects', item.id))
+          ))
+          if (!active || version !== requestVersion) return
+          const records = projectSnapshots
+            .filter(item => item.exists())
+            .map(item => ({ id: item.id, ...item.data() }))
+            .sort((a, b) => {
+              const aTime = a.updatedAt?.toMillis?.() || 0
+              const bTime = b.updatedAt?.toMillis?.() || 0
+              return bTime - aTime
+            })
+          setProjects(records)
+          setProjectsLoading(false)
+        } catch {
+          if (!active || version !== requestVersion) return
+          setProjects([])
+          setError('We could not load projects shared with this guest account.')
+          setProjectsLoading(false)
+        }
+      }, () => {
+        if (!active) return
+        setProjects([])
+        setError('We could not load projects shared with this guest account.')
+        setProjectsLoading(false)
+      })
+      return () => { active = false; unsubscribe() }
+    }
+
     const ref = collection(db, 'organisations', selectedOrgId, 'projects')
     const unsubscribe = onSnapshot(ref, snapshot => {
       const records = snapshot.docs
@@ -76,7 +117,7 @@ export function WorkspaceProvider({ children }) {
     })
 
     return unsubscribe
-  }, [selectedOrgId, user?.uid, user?.emailVerified])
+  }, [selectedOrgId, user?.uid, user?.emailVerified, selectedOrganisation?.role, organisationLoading])
 
   useEffect(() => {
     if (!selectedOrgId) return
@@ -160,7 +201,6 @@ export function WorkspaceProvider({ children }) {
     return projectRef.id
   }
 
-  const selectedOrganisation = organisations.find(item => item.id === selectedOrgId) || null
   const value = {
     organisations,
     selectedOrgId,
