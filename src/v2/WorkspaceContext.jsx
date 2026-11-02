@@ -57,8 +57,15 @@ export function WorkspaceProvider({ children }) {
       setProjectsLoading(false)
       return undefined
     }
-    if (organisationLoading) return undefined
+    if (organisationLoading) {
+      setProjects([])
+      setProjectsLoading(false)
+      return undefined
+    }
 
+    // Clear the previous organisation's projects immediately so data from
+    // the last workspace is never displayed while the next listener starts.
+    setProjects([])
     setProjectsLoading(true)
 
     // Guests only query their own explicit project access index. Standard
