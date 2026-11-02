@@ -33,7 +33,7 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 
 ### Still to implement
 
-- Task dependency management and richer calendar interactions.
+- Richer calendar interactions and dependency reporting.
 - Richer task history and activity filtering.
 - Milestone approvals and multi-step completion workflows.
 - Automated notification generation, delivery preferences and email/push delivery.
