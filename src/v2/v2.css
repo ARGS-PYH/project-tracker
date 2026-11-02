@@ -494,3 +494,27 @@
   .v2-invite-link-box .v2-button { width:100%; }
   .v2-invite-card { padding:26px 21px; }
 }
+
+
+/* Project-level access and role-aware delivery controls */
+.v2-project-member-form { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto; align-items:end; gap:11px; padding:15px; background:var(--v2-surface-soft); border:1px solid var(--v2-border); border-radius:10px; }
+.v2-project-member-form .v2-field { min-width:0; }
+.v2-project-member-form select { width:100%; min-height:37px; padding:8px 10px; color:var(--v2-text); background:var(--v2-surface); border:1px solid var(--v2-border); border-radius:7px; font:inherit; font-size:10px; outline:0; }
+.v2-project-member-form select:focus { border-color:var(--v2-brand); box-shadow:0 0 0 3px var(--v2-brand-soft); }
+.v2-project-member-list { display:flex; flex-direction:column; }
+.v2-project-member-row { display:flex; align-items:center; gap:10px; padding:12px 2px; border-top:1px solid var(--v2-border); }
+.v2-remove-access { color:var(--v2-danger); }
+.v2-remove-access:disabled { opacity:.5; cursor:not-allowed; }
+.v2-task-controls select:disabled { opacity:.55; cursor:not-allowed; }
+.v2-readonly-role { display:flex; align-items:center; flex-wrap:wrap; gap:8px; min-height:37px; padding:3px 0; }
+.v2-readonly-role small { color:var(--v2-muted); font-size:9px; font-weight:400; line-height:1.45; }
+@media(max-width:900px) {
+  .v2-project-member-form { grid-template-columns:1fr 1fr; }
+  .v2-project-member-form .v2-button { grid-column:1/-1; }
+}
+@media(max-width:600px) {
+  .v2-project-member-form { grid-template-columns:1fr; }
+  .v2-project-member-form .v2-button { grid-column:auto; }
+  .v2-project-member-row { flex-wrap:wrap; }
+  .v2-project-member-row .v2-member-info { flex-basis:calc(100% - 60px); }
+}
