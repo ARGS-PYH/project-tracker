@@ -32,6 +32,10 @@ service cloud.firestore {
       return isOrgMember(orgId) && orgRole(orgId) in ['owner', 'admin'];
     }
 
+    function canCreateProject(orgId) {
+      return isOrgMember(orgId) && orgRole(orgId) in ['owner', 'admin', 'member'];
+    }
+
     function projectMemberPath(orgId, projectId, uid) {
       return /databases/$(database)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(uid);
     }
@@ -123,7 +127,7 @@ service cloud.firestore {
       }
 
       match /projects/{projectId} {
-        allow create: if isOrgAdmin(orgId)
+        allow create: if canCreateProject(orgId)
           && request.resource.data.organisationId == orgId
           && request.resource.data.ownerUid == request.auth.uid;
 
@@ -135,10 +139,24 @@ service cloud.firestore {
 
         match /members/{projectMemberUid} {
           allow read: if canReadProject(orgId, projectId);
-          allow create: if isOrgAdmin(orgId)
-            && request.resource.data.uid == projectMemberUid;
-          allow update, delete: if canManageProject(orgId, projectId)
-            && (resource.data.role != 'project_manager' || canManageProject(orgId, projectId));
+          allow create: if (
+              isOrgAdmin(orgId)
+              && request.resource.data.uid == projectMemberUid
+            ) || (
+              signedIn()
+              && projectMemberUid == request.auth.uid
+              && request.resource.data.uid == request.auth.uid
+              && request.resource.data.role == 'project_manager'
+              && getAfter(/databases/$(database)/documents/organisations/$(orgId)/projects/$(projectId)).data.ownerUid == request.auth.uid
+            );
+          allow update: if isOrgAdmin(orgId)
+            || (
+              canManageProject(orgId, projectId)
+              && resource.data.role != 'project_manager'
+              && request.resource.data.role in ['contributor', 'viewer']
+            );
+          allow delete: if isOrgAdmin(orgId)
+            || (canManageProject(orgId, projectId) && resource.data.role != 'project_manager');
         }
 
         match /milestones/{milestoneId} {
