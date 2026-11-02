@@ -14,7 +14,15 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 - Organisation member invitations using expiring links, verified-email acceptance and member records.
 - Organisation team creation and member assignment.
 - Launch creation and organisation launch listing.
-- Launch workspace with task creation, priorities, due dates, milestone linking and status updates.
+- Launch workspace with task creation, editing, priorities, due dates, milestone linking and status updates.
+- Task list, Kanban board and due-date timeline views.
+- Task discussions using project-scoped comments.
+- Project file uploads and downloads with a 10 MB limit and role-scoped Storage access.
+- Evidence notes and completion checks in the launch-readiness checklist.
+- Append-only project activity records for task, milestone, comment, file and readiness updates.
+- Live organisation-wide My Tasks, Milestones and Reports pages.
+- Notifications inbox for records already written to the user's notification collection.
+- Organisation name settings for owners and administrators.
 - Milestone creation and task-linked milestone progress.
 - Responsive layouts and light/dark design tokens.
 - Tenant-scoped Firestore and Firebase Storage rule baselines.
@@ -22,14 +30,13 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 
 ### Still to implement
 
-- Project-level member assignment and guest sharing.
-- Task board drag-and-drop, list refinements and calendar view.
-- Task editing, subtasks, comments and attachment workflows.
-- Milestone editing, approval and completion workflows.
-- Activity timeline and notification centre.
-- Launch readiness checklist with evidence and approvals.
-- Organisation and launch reports.
-- Backend email delivery for invitations and notification preferences.
+- Drag-and-drop task board, month calendar, subtasks and task dependency management.
+- Task deletion controls and richer task history.
+- Milestone editing, milestone approvals and completion workflows.
+- Automated notification generation, delivery preferences and email/push delivery.
+- Backend email delivery for organisation invitations and notifications.
+- Team-to-launch assignment and team-specific task filters.
+- Launch settings and lifecycle approvals.
 - Legacy PLTK project/member/task migration tooling.
 - Automated Firestore and Storage rules tests using the Firebase Emulator.
 - Dependency and full application security audit.
