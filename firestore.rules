@@ -285,6 +285,8 @@ service cloud.firestore {
               'task_updated',
               'task_status_changed',
               'milestone_created',
+              'milestone_status_changed',
+              'launch_status_changed',
               'comment_added',
               'file_uploaded',
               'readiness_updated'
