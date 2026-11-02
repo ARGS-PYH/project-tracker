@@ -10,8 +10,16 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Initial organisation creation and user organisation index.
 - Organisation-level launches collection and launch creation.
 - Launch workspace with live task and milestone listeners.
-- Task creation, priority, due date, milestone link and status updates.
+- Task creation, editing, priority, due date, milestone link and status updates.
+- Task list, Kanban board and due-date timeline views.
+- Task comments with author-scoped deletion and project-scoped read access.
+- Project file upload/download with role-based Storage access and size/type limits.
 - Milestone creation and progress derived from linked task records.
+- Evidence-backed launch readiness checklist saved on the launch record.
+- Append-only project activity records for core delivery actions.
+- Live organisation-wide My Tasks, Milestones and Reports pages.
+- Notifications inbox for records already present in the user's notification collection.
+- Organisation name editing for owners and administrators.
 - Organisation member invitation creation, 7-day expiry, verified-email acceptance, revoke and member list.
 - Organisation team creation with member selection.
 - Light/dark theme tokens and responsive page layouts.
@@ -21,13 +29,15 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 
 - The legacy project/task model is not migrated.
 - Existing users, PINs and historical project data are not imported.
-- Guests cannot yet browse assigned project lists; the project-level sharing experience must be completed before enabling guest invitations.
-- Teams are organisational groupings, but launch/team assignment and team-specific task filters are not yet implemented.
-- Task editing, board drag/drop, subtasks, comments, attachments, calendars and dependency management remain incomplete.
-- Milestone editing, milestone approval and launch readiness checks remain incomplete.
-- The activity log, notification centre, email delivery and reports remain incomplete.
+- The task board supports status changes but not drag-and-drop; month calendar, subtasks and dependency management remain incomplete.
+- Task deletion controls and richer task history remain incomplete.
+- Milestone editing and approval workflows remain incomplete.
+- Activity is written by authenticated project contributors and is append-only; it has not yet been independently audited.
+- Notifications are read from the user's notification collection, but event generation, delivery preferences and email/push delivery remain incomplete.
+- Teams are organisational groupings; launch/team assignment and team-specific task filters are not yet implemented.
+- Invitation links are shareable manually; automated invitation email delivery remains incomplete.
 - Existing Express endpoints have not yet been redesigned for organisation-scoped, authenticated actions.
-- Firestore and Storage rules have not yet been verified with automated emulator tests.
+- Firestore and Storage rules have not yet been verified with automated emulator tests; the new task comments, activity and file paths still need emulator coverage.
 - Dependency vulnerabilities reported by `npm ci` have not yet been triaged.
 
 ## Verification
