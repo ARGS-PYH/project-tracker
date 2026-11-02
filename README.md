@@ -1,20 +1,46 @@
 # PLTK — Product Launch Tracker
 
-PLTK is a collaborative product launch management platform for organisations and the teams involved in bringing products to market.
+PLTK is a launch-first collaboration platform for organisations coordinating the teams, tasks and milestones involved in bringing products to market.
 
-The product is being restructured on the `pltk-v2` branch around an organisation-first model:
+## V2 development
+
+The current v2 implementation is being developed on the `pltk-v2` branch. The existing `main` branch and live Firebase deployment are being kept separate until v2 passes functional, migration and security verification.
+
+### Implemented on `pltk-v2`
+
+- Redesigned public PLTK landing page and application shell.
+- Firebase email/password sign-in and registration, email verification and password reset.
+- Organisation creation and organisation switching.
+- Organisation member invitations using expiring links, verified-email acceptance and member records.
+- Organisation team creation and member assignment.
+- Launch creation and organisation launch listing.
+- Launch workspace with task creation, priorities, due dates, milestone linking and status updates.
+- Milestone creation and task-linked milestone progress.
+- Responsive layouts and light/dark design tokens.
+- Tenant-scoped Firestore and Firebase Storage rule baselines.
+- GitHub Actions production build check.
+
+### Still to implement
+
+- Project-level member assignment and guest sharing.
+- Task board drag-and-drop, list refinements and calendar view.
+- Task editing, subtasks, comments and attachment workflows.
+- Milestone editing, approval and completion workflows.
+- Activity timeline and notification centre.
+- Launch readiness checklist with evidence and approvals.
+- Organisation and launch reports.
+- Backend email delivery for invitations and notification preferences.
+- Legacy PLTK project/member/task migration tooling.
+- Automated Firestore and Storage rules tests using the Firebase Emulator.
+- Dependency and full application security audit.
+
+## Product structure
 
 **User → Organisation → Teams → Launches → Milestones → Tasks**
 
-## Current development state
+Each organisation is an independent tenant. Standard organisation members can collaborate across that organisation. Project-level guest access is reserved for the upcoming project-sharing workflow.
 
-- The existing application remains available through the legacy routes while v2 is developed.
-- The new v2 workspace is mounted at `/app`.
-- V2 foundation: Firebase email/password authentication, email verification, organisation creation, organisation switching, launch creation and a responsive dashboard shell.
-- The v2 Firestore rules use organisation membership and project membership checks. The v2 Storage rules restrict access to organisation/project paths.
-- The product and architecture decisions are documented in [docs/PLTK-V2-FOUNDATION.md](docs/PLTK-V2-FOUNDATION.md).
-
-V2 is under active development. The task board, milestone workflows, team invitations, activity timeline, readiness checks and reports are not complete yet.
+Product and engineering decisions are recorded in [docs/PLTK-V2-FOUNDATION.md](docs/PLTK-V2-FOUNDATION.md).
 
 ## Technology
 
@@ -27,7 +53,7 @@ V2 is under active development. The task board, milestone workflows, team invita
 
 ## Local development
 
-1. Clone the repository and check out the v2 branch:
+1. Clone and switch to the v2 branch:
 
    ```bash
    git clone https://github.com/ARGS-PYH/project-tracker.git
@@ -35,47 +61,50 @@ V2 is under active development. The task board, milestone workflows, team invita
    git checkout pltk-v2
    ```
 
-2. Install dependencies:
+2. Install packages:
 
    ```bash
    npm ci
    ```
 
-3. Configure the Firebase client settings with Vite environment variables in a local `.env` file. Do not commit private service-account credentials, SMTP passwords or other server secrets.
+3. Configure Firebase client values with Vite environment variables in your local `.env` file. Do not put private service-account credentials, SMTP passwords or other server secrets in Vite variables.
 
-4. Start the Vite development server:
+4. Start the development server:
 
    ```bash
    npm run dev
    ```
 
-5. Open the v2 workspace at `/app`.
+5. Open `http://localhost:5173/` for the public page or `http://localhost:5173/app` for the application.
 
-6. Create a production build:
+6. Build:
 
    ```bash
    npm run build
    ```
 
-## Firebase setup for v2
+## Firebase setup
 
-Enable the Email/Password provider in Firebase Authentication and configure the authorised domains and email verification settings.
+Enable the Email/Password sign-in provider in Firebase Authentication and configure authorised domains and email verification. The invitation acceptance flow requires the invited account to have a verified email address matching the invitation.
 
 The v2 rule files are:
 
 - `firestore.rules`
 - `storage.rules`
 
-They are versioned in this branch but are **not deployed automatically** by the application build. Test them against the intended workflows and a non-production Firebase project before deploying.
+They are committed to this branch but are **not deployed automatically by the Vite build**. The rule baselines must be tested with the Firebase Emulator and reviewed against all required workflows before deployment.
 
 ## Production safety
 
-Keep `main` and the existing production application unchanged while v2 is being developed. Before migrating existing projects, members, tasks, comments or attachments:
+The current live application uses the legacy data model. Do not deploy the v2 Firestore rules to the production Firebase project while the legacy PIN-based application is still in use; those rules are not compatible with the legacy model.
 
-- Back up the current Firestore data.
-- Map legacy records to the organisation-first model.
-- Test the migration on an isolated dataset.
-- Verify counts, ownership and access rules.
-- Prepare a rollback plan.
+Before any production migration:
 
-Never use production data as a test fixture.
+- Back up current Firestore data and Storage files.
+- Map legacy workspaces, members, PIN records, task groups, task state, private tasks, comments and image attachments into the new organisation-first model.
+- Test migration on an isolated Firebase project.
+- Verify data counts, relationships, ownership and access boundaries.
+- Prepare and rehearse a rollback.
+- Deploy v2 only after the new app and rules have passed acceptance and security tests.
+
+Never use production records as test fixtures.
