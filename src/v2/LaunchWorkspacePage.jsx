@@ -104,7 +104,7 @@ function TaskRow({ task, onStatusChange, onEdit, onOpenComments, onDelete, canMa
         <div className="v2-task-copy">
           <strong>{task.title}</strong>
           {task.description && <p>{task.description}</p>}
-          <div className="v2-task-meta"><span><Icon name="calendar" size={12}/>{formatDate(task.dueDate)}</span><span className={'v2-priority priority-' + (task.priority || 'medium')}>{task.priority || 'medium'} priority</span>{task.assignedToName && <span><Icon name="user" size={12}/>{task.assignedToName}</span>}{task.subtasks?.length > 0 && <span><Icon name="check" size={12}/>{task.subtasks.filter(item => item.complete).length}/{task.subtasks.length} steps</span>}</div>
+          <div className="v2-task-meta"><span><Icon name="calendar" size={12}/>{formatDate(task.dueDate)}</span><span className={'v2-priority priority-' + (task.priority || 'medium')}>{task.priority || 'medium'} priority</span>{task.assignedToName && <span><Icon name="user" size={12}/>{task.assignedToName}</span>}{task.subtasks?.length > 0 && <span><Icon name="check" size={12}/>{task.subtasks.filter(item => item.complete).length}/{task.subtasks.length} steps</span>}{task.dependsOn?.length > 0 && <span><Icon name="link" size={12}/>{task.dependsOn.length} dependencies</span>}</div>
         </div>
       </div>
       <div className="v2-task-controls">
@@ -755,6 +755,7 @@ export default function LaunchWorkspacePage() {
                     <small>{task.priority || 'medium'} priority · {formatDate(task.dueDate)}</small>
                     {task.assignedToName && <small>Assigned to {task.assignedToName}</small>}
                     {task.subtasks?.length > 0 && <small>{task.subtasks.filter(item => item.complete).length} of {task.subtasks.length} steps complete</small>}
+                    {task.dependsOn?.length > 0 && <small>{task.dependsOn.length} prerequisite tasks</small>}
                     <div className="v2-kanban-actions">
                       <select aria-label={'Change status for ' + task.title} value={task.status || 'todo'} disabled={!canContribute} onChange={event => changeTaskStatus(task.id, event.target.value)}>{taskStatuses.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
                       <button className="v2-text-button" onClick={() => setActiveTask(task)}>Discussion</button>
