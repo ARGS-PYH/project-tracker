@@ -8,7 +8,10 @@ export default function AuthPage({ mode = 'login' }) {
   const { signIn, signUp, resetPassword } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const nextPath = searchParams.get('next')
+  const requestedNextPath = searchParams.get('next')
+  const nextPath = requestedNextPath && requestedNextPath.startsWith('/') && !requestedNextPath.startsWith('//')
+    ? requestedNextPath
+    : '/app'
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -39,7 +42,7 @@ export default function AuthPage({ mode = 'login' }) {
         navigate(nextPath || '/app', { replace: true })
       } else {
         await signIn(email, password)
-        navigate('/app', { replace: true })
+        navigate(nextPath, { replace: true })
       }
     } catch (err) {
       const messages = {
