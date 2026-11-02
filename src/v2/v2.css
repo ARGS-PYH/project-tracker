@@ -428,3 +428,69 @@
   .v2-task-row { align-items:flex-start; flex-direction:column; }
   .v2-task-controls { width:100%; justify-content:space-between; }
 }
+
+
+/* Organisation members, invitations and teams */
+.v2-member-invite-panel, .v2-team-form { display:flex; flex-direction:column; gap:16px; }
+.v2-member-invite-form { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto; align-items:end; gap:12px; }
+.v2-member-invite-form .v2-field { min-width:0; }
+.v2-member-invite-form .v2-button { white-space:nowrap; }
+.v2-invite-link-box { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px; border:1px solid var(--v2-brand-border); border-radius:9px; background:var(--v2-brand-soft); }
+.v2-invite-link-box > div { display:flex; flex:1; flex-direction:column; gap:5px; min-width:0; }
+.v2-invite-link-box strong { color:var(--v2-brand); font-size:11px; }
+.v2-invite-link-box span { overflow:hidden; color:var(--v2-muted); font-size:10px; text-overflow:ellipsis; white-space:nowrap; }
+.v2-invite-footnote { color:var(--v2-subtle); font-size:10px; line-height:1.5; }
+.v2-member-list { display:flex; flex-direction:column; }
+.v2-member-row { display:flex; align-items:center; gap:11px; min-width:0; padding:12px 2px; border-top:1px solid var(--v2-border); }
+.v2-member-info { display:flex; flex:1; flex-direction:column; gap:4px; min-width:0; }
+.v2-member-info strong { overflow:hidden; color:var(--v2-text); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.v2-member-info small { overflow:hidden; color:var(--v2-muted); font-size:9px; text-overflow:ellipsis; white-space:nowrap; }
+.v2-role-pill { padding:5px 8px; color:var(--v2-muted); background:var(--v2-surface-soft); border:1px solid var(--v2-border); border-radius:20px; font-size:9px; font-weight:750; text-transform:capitalize; }
+.v2-role-pill.role-owner, .v2-role-pill.role-admin { color:var(--v2-brand); background:var(--v2-brand-soft); border-color:var(--v2-brand-border); }
+.v2-role-pill.role-guest { color:var(--v2-warning); background:color-mix(in srgb,var(--v2-warning) 10%,transparent); }
+.v2-count-badge { display:inline-flex; align-items:center; justify-content:center; min-width:20px; height:19px; padding:0 6px; margin-left:4px; color:var(--v2-muted); background:var(--v2-surface-soft); border:1px solid var(--v2-border); border-radius:20px; font-size:9px; font-weight:700; vertical-align:middle; }
+.v2-member-active { color:var(--v2-subtle); font-size:9px; text-transform:capitalize; }
+.v2-avatar.invite { color:var(--v2-brand); background:var(--v2-brand-soft); }
+.v2-revoke-button { color:var(--v2-danger); }
+.v2-team-form { margin-top:17px; }
+.v2-team-member-picker { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; padding:10px; border:1px solid var(--v2-border); border-radius:9px; background:var(--v2-surface-soft); }
+.v2-team-member-option { display:flex; align-items:center; gap:8px; min-width:0; padding:8px; border:1px solid var(--v2-border); border-radius:8px; background:var(--v2-surface); cursor:pointer; }
+.v2-team-member-option input { accent-color:var(--v2-brand); }
+.v2-team-member-option > span:last-child { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.v2-team-member-option strong, .v2-team-member-option small { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.v2-team-member-option strong { color:var(--v2-text); font-size:9px; }
+.v2-team-member-option small { color:var(--v2-muted); font-size:8px; }
+.v2-field-help { color:var(--v2-subtle); font-size:10px; font-weight:400; }
+.v2-team-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.v2-team-card { min-width:0; padding:16px; border:1px solid var(--v2-border); border-radius:11px; background:var(--v2-surface); }
+.v2-team-card-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:16px; }
+.v2-team-icon { width:34px; height:34px; display:grid; place-items:center; color:var(--v2-brand); background:var(--v2-brand-soft); border-radius:9px; }
+.v2-team-card h3 { color:var(--v2-text); font-size:12px; }
+.v2-team-card > p { min-height:32px; margin-top:6px; color:var(--v2-muted); font-size:10px; line-height:1.55; }
+.v2-team-avatars { display:flex; margin-top:14px; padding-top:11px; border-top:1px solid var(--v2-border); }
+.v2-team-avatars span { width:25px; height:25px; display:grid; place-items:center; margin-right:-5px; border:2px solid var(--v2-surface); border-radius:50%; color:var(--v2-brand); background:var(--v2-brand-soft); font-size:8px; font-weight:800; }
+.v2-invite-page { min-height:100vh; display:grid; place-items:center; padding:24px; color:var(--v2-text); background:var(--v2-bg); font-family:Inter,system-ui,sans-serif; }
+.v2-invite-card { width:100%; max-width:455px; display:flex; flex-direction:column; align-items:flex-start; gap:14px; padding:34px; border:1px solid var(--v2-border); border-radius:16px; background:var(--v2-surface); box-shadow:var(--v2-shadow); }
+.v2-invite-icon { width:48px; height:48px; display:grid; place-items:center; margin-top:24px; color:var(--v2-brand); background:var(--v2-brand-soft); border-radius:13px; }
+.v2-invite-card h1 { color:var(--v2-text); font-size:25px; letter-spacing:-.04em; }
+.v2-invite-card > p { color:var(--v2-muted); font-size:12px; line-height:1.7; }
+.v2-invite-card > p strong { color:var(--v2-text); }
+.v2-invite-actions { display:flex; flex-wrap:wrap; gap:9px; margin-top:5px; }
+.v2-invite-detail { width:100%; display:grid; grid-template-columns:1fr; gap:5px; padding:14px; border:1px solid var(--v2-border); border-radius:9px; background:var(--v2-surface-soft); }
+.v2-invite-detail span { color:var(--v2-subtle); font-size:9px; }
+.v2-invite-detail strong { margin-bottom:6px; color:var(--v2-text); font-size:11px; }
+.v2-loading-inline { display:flex; align-items:center; gap:9px; color:var(--v2-muted); font-size:11px; }
+@media (max-width:900px) {
+  .v2-team-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .v2-member-invite-form { grid-template-columns:1fr 1fr; }
+  .v2-member-invite-form .v2-button { grid-column:1/-1; }
+}
+@media (max-width:600px) {
+  .v2-member-invite-form, .v2-team-grid, .v2-team-member-picker { grid-template-columns:1fr; }
+  .v2-member-row { flex-wrap:wrap; }
+  .v2-member-info { flex-basis:calc(100% - 65px); }
+  .v2-member-active { margin-left:auto; }
+  .v2-invite-link-box { align-items:stretch; flex-direction:column; }
+  .v2-invite-link-box .v2-button { width:100%; }
+  .v2-invite-card { padding:26px 21px; }
+}
