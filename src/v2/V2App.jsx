@@ -4,8 +4,8 @@ import { AuthProvider, useAuth } from './auth/AuthProvider.jsx'
 import AuthPage from './auth/AuthPage.jsx'
 import WorkspaceShell from './WorkspaceShell.jsx'
 import { WorkspaceProvider } from './WorkspaceContext.jsx'
+import LaunchWorkspacePage from './LaunchWorkspacePage.jsx'
 import {
-  LaunchDetailPage,
   LaunchesPage,
   NewLaunchPage,
   OverviewPage,
@@ -43,7 +43,7 @@ function V2Routes() {
           <Route path="overview" element={<OverviewPage/>}/>
           <Route path="launches" element={<LaunchesPage/>}/>
           <Route path="launches/new" element={<NewLaunchPage/>}/>
-          <Route path="launches/:projectId" element={<LaunchDetailPage/>}/>
+          <Route path="launches/:projectId" element={<LaunchWorkspacePage/>}/>
           <Route path="tasks" element={<PlaceholderPage title="My tasks" description="One place for the work assigned to you across your projects."/>}/>
           <Route path="milestones" element={<PlaceholderPage title="Milestones" description="Track the deliverables that move your launches forward."/>}/>
           <Route path="teams" element={<PlaceholderPage title="Teams" description="Organise people into teams and coordinate work across departments."/>}/>
