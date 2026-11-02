@@ -137,7 +137,9 @@ service cloud.firestore {
           && request.resource.data.organisationId == orgId
           && request.resource.data.ownerUid == request.auth.uid;
 
-        allow read: if canReadProject(orgId, projectId);
+        // Organisation members can see launch summary records; detailed project
+        // resources remain restricted to project members and organisation admins.
+        allow read: if isOrgMember(orgId) || isProjectMember(orgId, projectId);
         allow update: if canManageProject(orgId, projectId)
           && request.resource.data.organisationId == resource.data.organisationId
           && request.resource.data.ownerUid == resource.data.ownerUid;
