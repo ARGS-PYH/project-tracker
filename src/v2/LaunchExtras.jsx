@@ -37,6 +37,7 @@ function formatDate(value) {
 
 export function TaskEditor({ task, milestones, members, onSave, onCancel, busy }) {
   const [values, setValues] = useState({})
+  const [subtaskTitle, setSubtaskTitle] = useState('')
   useEffect(() => {
     setValues({
       title: task?.title || '',
@@ -45,11 +46,19 @@ export function TaskEditor({ task, milestones, members, onSave, onCancel, busy }
       priority: task?.priority || 'medium',
       dueDate: typeof task?.dueDate === 'string' ? task.dueDate : '',
       milestoneId: task?.milestoneId || '',
-      assigneeUid: task?.assignedToUid || ''
+      assigneeUid: task?.assignedToUid || '',
+      subtasks: Array.isArray(task?.subtasks) ? task.subtasks : []
     })
+    setSubtaskTitle('')
   }, [task?.id])
 
   const set = (key, value) => setValues(current => ({ ...current, [key]: value }))
+  const addSubtask = () => {
+    const title = subtaskTitle.trim()
+    if (!title) return
+    set('subtasks', [...(values.subtasks || []), { id: String(Date.now()), title, complete: false }])
+    setSubtaskTitle('')
+  }
   const submit = event => {
     event.preventDefault()
     onSave(values)
@@ -66,6 +75,14 @@ export function TaskEditor({ task, milestones, members, onSave, onCancel, busy }
         <label className="v2-field"><span>Due date</span><input type="date" value={values.dueDate || ''} onChange={event => set('dueDate', event.target.value)}/></label>
         <label className="v2-field"><span>Milestone</span><select value={values.milestoneId || ''} onChange={event => set('milestoneId', event.target.value)}><option value="">No milestone</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
         <label className="v2-field"><span>Assignee</span><select value={values.assigneeUid || ''} onChange={event => set('assigneeUid', event.target.value)}><option value="">Unassigned</option>{members.map(member => <option key={member.id} value={member.id}>{member.displayName || member.email || member.id}</option>)}</select></label>
+      </div>
+      <div className="v2-subtask-editor">
+        <div className="v2-subtask-heading"><strong>Subtasks</strong><span>{(values.subtasks || []).filter(item => item.complete).length} of {(values.subtasks || []).length} complete</span></div>
+        {(values.subtasks || []).map((item, index) => <div className="v2-subtask-edit-row" key={item.id || index}>
+          <label><input type="checkbox" checked={Boolean(item.complete)} onChange={event => set('subtasks', (values.subtasks || []).map((entry, itemIndex) => itemIndex === index ? {...entry, complete:event.target.checked} : entry))}/><span>{item.title}</span></label>
+          <button type="button" className="v2-text-button" onClick={() => set('subtasks', (values.subtasks || []).filter((entry, itemIndex) => itemIndex !== index))}>Remove</button>
+        </div>)}
+        <div className="v2-subtask-add-row"><input value={subtaskTitle} onChange={event => setSubtaskTitle(event.target.value)} maxLength={100} placeholder="Add a smaller step…"/><button type="button" className="v2-button v2-button-secondary" onClick={addSubtask} disabled={!subtaskTitle.trim()}>Add step</button></div>
       </div>
       <div className="v2-form-actions">
         <button type="button" className="v2-button v2-button-secondary" onClick={onCancel} disabled={busy}>Cancel</button>
