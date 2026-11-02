@@ -13,6 +13,7 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Task creation, editing, priority, due date, milestone link and status updates.
 - Task list, draggable Kanban board, due-date timeline and monthly calendar views.
 - Task subtasks with completion tracking.
+- Task dependencies with circular-chain validation and completion guards.
 - Task deletion with comment cleanup for project managers and organisation administrators.
 - Task comments with author-scoped deletion and project-scoped read access.
 - Project file upload/download with role-based Storage access and size/type limits.
@@ -31,7 +32,7 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 
 - The legacy project/task model is not migrated.
 - Existing users, PINs and historical project data are not imported.
-- Task dependency management and richer calendar interactions remain incomplete.
+- Richer calendar interactions and dependency reporting remain incomplete.
 - Milestone approval workflows remain incomplete.
 - Richer activity history and filtering remain incomplete.
 - Activity is written by authenticated project contributors and is append-only; it has not yet been independently audited.
