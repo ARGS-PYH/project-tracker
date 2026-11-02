@@ -9,7 +9,8 @@ service firebase.storage {
     function orgMember(orgId) {
       return signedIn()
         && firestore.exists(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid))
-        && firestore.get(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid)).data.status == 'active';
+        && firestore.get(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid)).data.status == 'active'
+        && firestore.get(/databases/(default)/documents/organisations/$(orgId)/members/$(request.auth.uid)).data.role in ['owner', 'admin', 'member'];
     }
 
     function projectMember(orgId, projectId) {
@@ -42,7 +43,9 @@ service firebase.storage {
     }
 
     match /organisations/{orgId}/projects/{projectId}/{filePath=**} {
-      allow read: if orgAdmin(orgId) || projectMember(orgId, projectId);
+      // Organisation members have the same read visibility as Firestore;
+      // project guests can read only files in explicitly shared projects.
+      allow read: if orgMember(orgId) || projectMember(orgId, projectId);
       allow create: if canUpload(orgId, projectId) && allowedFile();
       allow update: if canUpload(orgId, projectId) && allowedFile();
       allow delete: if projectManager(orgId, projectId);
