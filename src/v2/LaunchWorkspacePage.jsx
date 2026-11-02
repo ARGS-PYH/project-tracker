@@ -15,7 +15,7 @@ import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
-import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel } from './LaunchExtras.jsx'
+import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel, ProjectSettingsPanel } from './LaunchExtras.jsx'
 
 const taskStatuses = [
   { value: 'todo', label: 'To do' },
@@ -701,6 +701,41 @@ export default function LaunchWorkspacePage() {
     }
   }
 
+  const updateProjectSettings = async values => {
+    if (!canManageTeam || !project) return
+    const cleanName = values.name.trim()
+    const cleanDescription = (values.description || '').trim()
+    if (cleanName.length < 3 || cleanName.length > 100) {
+      setError('Launch name must be between 3 and 100 characters.')
+      return
+    }
+    if (cleanDescription.length > 2000) {
+      setError('The launch brief must be 2,000 characters or fewer.')
+      return
+    }
+    if (values.targetLaunchDate && !/^\\d{4}-\\d{2}-\\d{2}$/.test(values.targetLaunchDate)) {
+      setError('Enter a valid target launch date.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId), {
+        name: cleanName,
+        description: cleanDescription,
+        targetLaunchDate: values.targetLaunchDate || null,
+        updatedAt: serverTimestamp()
+      })
+      await recordActivity('project_settings_updated', 'Updated launch profile settings.')
+      setNotice('Launch settings saved.')
+    } catch {
+      setError('Launch settings could not be saved. Check your project permissions.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const saveReadiness = async checks => {
     if (!canManageTeam || !project) return
     setReadinessBusy(true)
@@ -748,6 +783,7 @@ export default function LaunchWorkspacePage() {
         <button role="tab" aria-selected={activeTab === 'files'} className={activeTab === 'files' ? 'active' : ''} onClick={() => setActiveTab('files')}><Icon name="folder" size={15}/> Files <span>{files.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'activity'} className={activeTab === 'activity' ? 'active' : ''} onClick={() => setActiveTab('activity')}><Icon name="clock" size={15}/> Activity <span>{activity.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'team'} className={activeTab === 'team' ? 'active' : ''} onClick={() => setActiveTab('team')}><Icon name="users" size={15}/> Team <span>{projectMembers.length}</span></button>
+        <button role="tab" aria-selected={activeTab === 'settings'} className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}><Icon name="settings" size={15}/> Settings</button>
       </div>
 
       {activeTab === 'tasks' ? (
@@ -812,6 +848,8 @@ export default function LaunchWorkspacePage() {
         <ProjectFilesPanel orgId={selectedOrgId} projectId={projectId} user={user} canUpload={canContribute} canDelete={canManageTeam} onActivity={recordActivity}/>
       ) : activeTab === 'activity' ? (
         <ProjectActivityPanel items={activity}/>
+      ) : activeTab === 'settings' ? (
+        <ProjectSettingsPanel project={project} canManage={canManageTeam} onSave={updateProjectSettings} busy={busy}/>
       ) : (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch team</h2><p>Control which organisation members can view or contribute to this launch.</p></div></div>
