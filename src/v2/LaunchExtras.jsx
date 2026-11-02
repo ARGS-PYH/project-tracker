@@ -100,6 +100,34 @@ export function TaskEditor({ task, milestones, members, tasks, onSave, onCancel,
   )
 }
 
+export function ProjectSettingsPanel({ project, canManage, onSave, busy }) {
+  const [name, setName] = useState(project.name || '')
+  const [description, setDescription] = useState(project.description || '')
+  const [targetLaunchDate, setTargetLaunchDate] = useState(typeof project.targetLaunchDate === 'string' ? project.targetLaunchDate : '')
+  useEffect(() => {
+    setName(project.name || '')
+    setDescription(project.description || '')
+    setTargetLaunchDate(typeof project.targetLaunchDate === 'string' ? project.targetLaunchDate : '')
+  }, [project.id, project.name, project.description, project.targetLaunchDate])
+
+  const submit = event => {
+    event.preventDefault()
+    onSave({ name, description, targetLaunchDate })
+  }
+
+  return (
+    <section className="v2-panel v2-project-settings-panel">
+      <div className="v2-panel-heading"><div><h2>Launch profile</h2><p>Keep the launch name, brief and target date current for everyone on the team.</p></div><span className="v2-panel-icon"><Icon name="settings" size={18}/></span></div>
+      <form className="v2-launch-form" onSubmit={submit}>
+        <label className="v2-field"><span>Launch name *</span><input value={name} onChange={event => setName(event.target.value)} minLength={3} maxLength={100} required disabled={!canManage}/></label>
+        <label className="v2-field"><span>Launch brief</span><textarea value={description} onChange={event => setDescription(event.target.value)} rows={5} maxLength={2000} disabled={!canManage} placeholder="What is being launched, who is it for and what does success look like?"/></label>
+        <label className="v2-field"><span>Target launch date</span><input type="date" value={targetLaunchDate} onChange={event => setTargetLaunchDate(event.target.value)} disabled={!canManage}/></label>
+        {canManage ? <div className="v2-form-actions"><span className="v2-invite-footnote">Changes are shared with everyone who has access to this launch.</span><button className="v2-button v2-button-primary" disabled={busy || name.trim().length < 3}>{busy ? 'Saving…' : 'Save launch settings'} <Icon name="check" size={15}/></button></div> : <p className="v2-invite-footnote">Only a project manager or organisation administrator can edit launch settings.</p>}
+      </form>
+    </section>
+  )
+}
+
 export function ReadinessPanel({ project, canManage, onSave, busy }) {
   const [checks, setChecks] = useState(project.readinessChecks?.length ? project.readinessChecks : readinessTemplate)
   useEffect(() => {
