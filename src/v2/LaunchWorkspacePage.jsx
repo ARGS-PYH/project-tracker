@@ -34,6 +34,18 @@ function formatDate(value) {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(date)
 }
 
+function hasCircularDependency(tasks, targetId, dependencies) {
+  const graph = new Map(tasks.map(task => [task.id, Array.isArray(task.dependsOn) ? task.dependsOn : []]))
+  graph.set(targetId, dependencies)
+  const visit = (id, path) => {
+    if (path.has(id)) return true
+    const nextPath = new Set(path)
+    nextPath.add(id)
+    return (graph.get(id) || []).some(dependencyId => visit(dependencyId, nextPath))
+  }
+  return visit(targetId, new Set())
+}
+
 function dateKey(date) {
   return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0')
 }
@@ -490,6 +502,7 @@ export default function LaunchWorkspacePage() {
         dueDate: values.dueDate || null,
         milestoneId: values.milestoneId || null,
         subtasks: [],
+        dependsOn: [],
         assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
         assignedToUid: values.assigneeUid || null,
         assignedToName: values.assigneeUid
@@ -515,6 +528,15 @@ export default function LaunchWorkspacePage() {
   const changeTaskStatus = async (taskId, status) => {
     setError('')
     setNotice('')
+    const currentTask = tasks.find(item => item.id === taskId)
+    if (status === 'done' && currentTask?.subtasks?.some(item => !item.complete)) {
+      setError('Complete all subtasks before marking this task as done.')
+      return
+    }
+    if (status === 'done' && (currentTask?.dependsOn || []).some(id => tasks.find(item => item.id === id)?.status !== 'done')) {
+      setError('Complete the prerequisite tasks before marking this task as done.')
+      return
+    }
     try {
       await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', taskId), {
         status,
@@ -557,6 +579,13 @@ export default function LaunchWorkspacePage() {
     if (!canManageTeam) return
     setError('')
     setNotice('')
+    if (status === 'complete') {
+      const outstanding = tasks.filter(task => task.milestoneId === milestone.id && task.status !== 'done')
+      if (outstanding.length) {
+        setError('Complete the ' + outstanding.length + ' linked task(s) before completing this milestone.')
+        return
+      }
+    }
     try {
       await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'milestones', milestone.id), {
         status,
@@ -595,6 +624,15 @@ export default function LaunchWorkspacePage() {
     if (!canManageTeam) return
     setError('')
     setNotice('')
+    if (['ready', 'launched'].includes(status)) {
+      const checks = project?.readinessChecks || []
+      const incomplete = checks.filter(item => !item.complete)
+      if (!checks.length || incomplete.length) {
+        setError('Complete every launch-readiness check before moving this launch to ' + status.replace('_', ' ') + '.')
+        setActiveTab('readiness')
+        return
+      }
+    }
     try {
       await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId), {
         status,
@@ -609,6 +647,11 @@ export default function LaunchWorkspacePage() {
 
   const updateTask = async values => {
     if (!editingTask || !canContribute) return
+    const dependencies = Array.isArray(values.dependsOn) ? values.dependsOn : []
+    if (dependencies.includes(editingTask.id) || hasCircularDependency(tasks, editingTask.id, dependencies)) {
+      setError('These dependencies would create a circular task chain. Review the tasks selected and try again.')
+      return
+    }
     setBusy(true)
     setError('')
     setNotice('')
@@ -622,6 +665,7 @@ export default function LaunchWorkspacePage() {
         dueDate: values.dueDate || null,
         milestoneId: values.milestoneId || null,
         subtasks: Array.isArray(values.subtasks) ? values.subtasks : [],
+        dependsOn: dependencies,
         assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
         assignedToUid: values.assigneeUid || null,
         assignedToName: values.assigneeUid ? (member?.displayName || member?.email || (values.assigneeUid === user.uid ? user.email : 'Project member')) : null,
@@ -729,7 +773,7 @@ export default function LaunchWorkspacePage() {
           ) : (
             <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div>
           ) : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : canContribute ? 'Create the first task for this launch using the form above.' : 'A project contributor can add the first task.'}</p></div></div>}
-          {editingTask && canContribute && <TaskEditor task={editingTask} milestones={milestones} members={projectMembers.filter(member => ['project_manager','contributor'].includes(member.role))} onSave={updateTask} onCancel={() => setEditingTask(null)} busy={busy}/>}
+          {editingTask && canContribute && <TaskEditor task={editingTask} milestones={milestones} members={projectMembers.filter(member => ['project_manager','contributor'].includes(member.role))} tasks={tasks} onSave={updateTask} onCancel={() => setEditingTask(null)} busy={busy}/>}
           {activeTask && <TaskCommentsPanel orgId={selectedOrgId} projectId={projectId} task={activeTask} user={user} canComment={canContribute} canManage={canManageTeam} onActivity={recordActivity}/>}
           {!canContribute && <p className="v2-invite-footnote">You have read-only access to this launch.</p>}
         </section>
