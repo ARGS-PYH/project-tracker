@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
+import { useProjectData } from './AdvancedWorkspacePages.jsx'
 
 function PageHeader({ eyebrow, title, description, action }) {
   return (
@@ -46,7 +47,7 @@ function LaunchStatus({ status }) {
   return <span className={'v2-status-pill status-' + (status || 'planning')}>{label}</span>
 }
 
-function LaunchCard({ project }) {
+function LaunchCard({ project, progress = Number(progress) }) {
   return (
     <Link to={'/app/launches/' + project.id} className="v2-launch-card">
       <div className="v2-launch-card-top">
@@ -80,57 +81,62 @@ function EmptyLaunches({ onCreate }) {
 
 export function OverviewPage() {
   const { projects, projectsLoading } = useOutletContext()
+  const { tasks, milestones, loading: dataLoading } = useProjectData()
   const navigate = useNavigate()
   const today = new Date().toISOString().slice(0, 10)
+  const progressByProject = useMemo(() => {
+    const output = {}
+    projects.forEach(project => {
+      const projectTasks = tasks.filter(task => task.projectId === project.id)
+      output[project.id] = projectTasks.length
+        ? Math.round(projectTasks.filter(task => task.status === 'done').length / projectTasks.length * 100)
+        : 0
+    })
+    return output
+  }, [projects, tasks])
   const stats = useMemo(() => {
     const active = projects.filter(project => !['launched', 'paused'].includes(project.status))
     const launched = projects.filter(project => project.status === 'launched')
     const overdue = active.filter(project => project.targetLaunchDate && project.targetLaunchDate < today)
-    const average = projects.length ? Math.round(projects.reduce((sum, item) => sum + Number(item.progress || 0), 0) / projects.length) : 0
+    const completed = tasks.filter(task => task.status === 'done').length
+    const average = tasks.length ? Math.round(completed / tasks.length * 100) : 0
     return { active: active.length, launched: launched.length, overdue: overdue.length, average }
-  }, [projects, today])
+  }, [projects, tasks, today])
+  const readiness = projects.flatMap(project => (project.readinessChecks || []).map(item => ({...item, projectId:project.id, projectName:project.name})))
+  const readinessCompleted = readiness.filter(item => item.complete).length
+  const readinessPercent = readiness.length ? Math.round(readinessCompleted / readiness.length * 100) : 0
+  const upcomingMilestones = [...milestones].filter(item => item.dueDate).sort((a,b) => String(a.dueDate).localeCompare(String(b.dueDate))).slice(0, 4)
 
   return (
     <div className="v2-page">
-      <PageHeader
-        eyebrow="ORGANISATION OVERVIEW"
-        title="Good to see you."
-        description="Here's what is happening across your product launches."
-        action={<button className="v2-button v2-button-primary" onClick={() => navigate('/app/launches/new')}><Icon name="plus" size={17}/> New launch</button>}
-      />
+      <PageHeader eyebrow="ORGANISATION OVERVIEW" title="Good to see you." description="Here's what is happening across your product launches."
+        action={<button className="v2-button v2-button-primary" onClick={() => navigate('/app/launches/new')}><Icon name="plus" size={17}/> New launch</button>}/>
       <div className="v2-metrics-grid">
         <MetricCard label="Active launches" value={stats.active} note="Currently in progress" icon="rocket"/>
         <MetricCard label="Launched" value={stats.launched} note="Successfully released" icon="check" tone="blue"/>
         <MetricCard label="Overdue launches" value={stats.overdue} note="Past target launch date" icon="clock" tone="orange"/>
-        <MetricCard label="Average progress" value={stats.average + '%'} note="Across all launches" icon="chart" tone="purple"/>
+        <MetricCard label="Task completion" value={stats.average + '%'} note={tasks.length + ' tasks across visible launches'} icon="chart" tone="purple"/>
       </div>
-
       <div className="v2-section-heading">
         <div><h2>Active launches</h2><p>Keep an eye on the work moving towards launch.</p></div>
         <Link to="/app/launches" className="v2-inline-link">View all <Icon name="arrow" size={15}/></Link>
       </div>
-
-      {projectsLoading ? (
-        <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launches…</div>
-      ) : projects.length ? (
+      {projectsLoading || dataLoading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launch data…</div> : projects.length ? (
         <div className="v2-launch-grid">
-          {projects.filter(project => project.status !== 'launched').slice(0, 3).map(project => <LaunchCard key={project.id} project={project}/>)}
+          {projects.filter(project => project.status !== 'launched').slice(0, 3).map(project => <LaunchCard key={project.id} project={project} progress={progressByProject[project.id] || 0}/>)}
         </div>
-      ) : (
-        <EmptyLaunches onCreate={() => navigate('/app/launches/new')}/>
-      )}
-
+      ) : <EmptyLaunches onCreate={() => navigate('/app/launches/new')}/>}
       <div className="v2-insight-grid">
         <section className="v2-panel">
-          <div className="v2-panel-heading"><div><h2>Launch readiness</h2><p>Know what is holding your launch back.</p></div><span className="v2-panel-icon"><Icon name="shield" size={18}/></span></div>
+          <div className="v2-panel-heading"><div><h2>Launch readiness</h2><p>Progress against saved go-live checks.</p></div><span className="v2-panel-icon"><Icon name="shield" size={18}/></span></div>
           <div className="v2-readiness-empty">
-            <div className="v2-readiness-ring"><span>—</span></div>
-            <div><strong>Readiness checks are next</strong><p>Readiness will be calculated from evidence-backed checks across product, engineering, quality, marketing and operations.</p></div>
+            <div className="v2-readiness-ring"><span>{readiness.length ? readinessPercent + '%' : '—'}</span></div>
+            <div><strong>{readiness.length ? readinessCompleted + ' of ' + readiness.length + ' checks complete' : 'No readiness checks yet'}</strong><p>{readiness.length ? 'Readiness combines checks across product, engineering, quality, marketing, operations and leadership.' : 'Open a launch and use its Readiness tab to create the first go-live checklist.'}</p>{projects[0] && <Link className="v2-inline-link" to={'/app/launches/' + projects[0].id}>Open launch readiness <Icon name="arrow" size={14}/></Link>}</div>
           </div>
         </section>
         <section className="v2-panel">
           <div className="v2-panel-heading"><div><h2>Upcoming milestones</h2><p>Important launch dates across your workspace.</p></div><span className="v2-panel-icon"><Icon name="flag" size={18}/></span></div>
-          <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="calendar" size={18}/></span><div><strong>Milestones will appear here</strong><p>Create milestones within a launch to build your delivery timeline.</p></div></div>
+          {upcomingMilestones.length ? <div className="v2-overview-milestones">{upcomingMilestones.map(item => <Link to={'/app/launches/' + item.projectId} className="v2-overview-milestone-row" key={item.projectId + ':' + item.id}><span className="v2-list-empty-icon"><Icon name="calendar" size={16}/></span><span><strong>{item.title}</strong><small>{item.projectName}</small></span><time>{dateLabel(item.dueDate)}</time></Link>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="calendar" size={18}/></span><div><strong>No upcoming milestones</strong><p>Create milestones within a launch to build your delivery timeline.</p></div></div>}
         </section>
       </div>
     </div>
@@ -139,8 +145,17 @@ export function OverviewPage() {
 
 export function LaunchesPage() {
   const { projects, projectsLoading } = useOutletContext()
+  const { tasks, loading: dataLoading } = useProjectData()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const progressByProject = useMemo(() => {
+    const output = {}
+    projects.forEach(project => {
+      const projectTasks = tasks.filter(task => task.projectId === project.id)
+      output[project.id] = projectTasks.length ? Math.round(projectTasks.filter(task => task.status === 'done').length / projectTasks.length * 100) : 0
+    })
+    return output
+  }, [projects, tasks])
   const filteredProjects = projects.filter(project => {
     const term = search.trim().toLowerCase()
     return !term || project.name?.toLowerCase().includes(term) || project.description?.toLowerCase().includes(term)
@@ -153,8 +168,8 @@ export function LaunchesPage() {
         <div className="v2-search-box"><Icon name="search" size={17}/><input placeholder="Search launches" aria-label="Search launches" value={search} onChange={event => setSearch(event.target.value)}/></div>
         <span className="v2-result-count">{filteredProjects.length} {filteredProjects.length === 1 ? 'launch' : 'launches'}</span>
       </div>
-      {projectsLoading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launches…</div> : filteredProjects.length ? (
-        <div className="v2-launch-grid">{filteredProjects.map(project => <LaunchCard key={project.id} project={project}/>)}</div>
+      {projectsLoading || dataLoading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launches…</div> : filteredProjects.length ? (
+        <div className="v2-launch-grid">{filteredProjects.map(project => <LaunchCard key={project.id} project={project} progress={progressByProject[project.id] || 0}/>)}</div>
       ) : projects.length ? (
         <div className="v2-empty-state v2-empty-state-compact"><h3>No matching launches</h3><p>Try another search term.</p></div>
       ) : <EmptyLaunches onCreate={() => navigate('/app/launches/new')}/>}
