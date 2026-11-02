@@ -130,6 +130,7 @@ service cloud.firestore {
             signedIn()
             && memberUid == request.auth.uid
             && getAfter(/databases/$(database)/documents/organisations/$(orgId)).data.ownerUid == request.auth.uid
+            && request.resource.data.uid == memberUid
             && request.resource.data.role == 'owner'
             && request.resource.data.status == 'active'
           ) || (
@@ -145,6 +146,7 @@ service cloud.firestore {
           );
 
         allow update: if request.resource.data.uid == memberUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'roleUpdatedAt', 'roleUpdatedBy'])
           && (
             (
               isOrgOwner(orgId)
@@ -241,6 +243,7 @@ service cloud.firestore {
               && getAfter(/databases/$(database)/documents/organisations/$(orgId)/projects/$(projectId)).data.ownerUid == request.auth.uid
             );
           allow update: if request.resource.data.uid == projectMemberUid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'status', 'updatedAt'])
             && (
               (
                 isOrgAdmin(orgId)
