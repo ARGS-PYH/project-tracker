@@ -22,7 +22,7 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Live organisation-wide My Tasks, Milestones and Reports pages.
 - Notifications inbox for records already present in the user's notification collection.
 - Organisation name editing for owners and administrators.
-- Organisation member invitation creation, 7-day expiry, verified-email acceptance, revoke and member list.
+- Organisation member invitation creation, 7-day expiry, verified-email acceptance, revoke, role changes and removal with project/team access cleanup.
 - Organisation team creation with member selection.
 - Light/dark theme tokens and responsive page layouts.
 - Firestore/Storage rule baseline that denies unspecified access and scopes reads/writes by organisation/project membership.
@@ -31,9 +31,9 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 
 - The legacy project/task model is not migrated.
 - Existing users, PINs and historical project data are not imported.
-- The task board supports status changes but not drag-and-drop; month calendar, subtasks and dependency management remain incomplete.
-- Task deletion controls and richer task history remain incomplete.
-- Milestone editing and approval workflows remain incomplete.
+- Task dependency management and richer calendar interactions remain incomplete.
+- Milestone approval workflows remain incomplete.
+- Richer activity history and filtering remain incomplete.
 - Activity is written by authenticated project contributors and is append-only; it has not yet been independently audited.
 - Notifications are read from the user's notification collection, but event generation, delivery preferences and email/push delivery remain incomplete.
 - Organisation teams can be assigned to launches; team-specific task filters remain incomplete.
