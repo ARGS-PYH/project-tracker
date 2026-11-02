@@ -51,7 +51,10 @@ service cloud.firestore {
     }
 
     function canReadProject(orgId, projectId) {
-      return isOrgAdmin(orgId) || isProjectMember(orgId, projectId);
+      // Standard organisation members can collaborate across the organisation.
+      // Guests only see projects where they have explicit project membership.
+      return (isOrgMember(orgId) && orgRole(orgId) != 'guest')
+        || isProjectMember(orgId, projectId);
     }
 
     function canManageProject(orgId, projectId) {
