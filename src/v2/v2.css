@@ -681,3 +681,10 @@
 .v2-kanban-card[draggable="true"]:active { cursor: grabbing; }
 .v2-kanban-column { transition: border-color .15s ease, background .15s ease; }
 .v2-kanban-column:has(.v2-kanban-card[draggable="true"]) { border-style: dashed; }
+
+.v2-dependency-edit-row { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--v2-border); cursor: pointer; }
+.v2-dependency-edit-row:last-child { border-bottom: 0; }
+.v2-dependency-edit-row > input { margin-top: 2px; accent-color: var(--v2-brand); }
+.v2-dependency-edit-row > span { display: flex; flex-direction: column; gap: 3px; }
+.v2-dependency-edit-row strong { color: var(--v2-text); font-size: 11px; }
+.v2-dependency-edit-row small { color: var(--v2-muted); font-size: 9px; text-transform: capitalize; }
