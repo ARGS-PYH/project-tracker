@@ -518,3 +518,28 @@
   .v2-project-member-row { flex-wrap:wrap; }
   .v2-project-member-row .v2-member-info { flex-basis:calc(100% - 60px); }
 }
+
+
+/* Functional workspace pages */
+.v2-advanced-list { display: flex; flex-direction: column; gap: 0; padding: 0 20px; }
+.v2-advanced-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px 0; border-bottom: 1px solid var(--v2-border); }
+.v2-advanced-row:last-child { border-bottom: 0; }
+.v2-advanced-row-main { display: flex; flex: 1; flex-direction: column; gap: 5px; min-width: 0; }
+.v2-advanced-row-main strong { font-size: 13px; color: var(--v2-text); }
+.v2-advanced-row-main > span { color: var(--v2-muted); font-size: 11px; line-height: 1.5; }
+.v2-advanced-row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+.v2-advanced-row-actions select, .v2-filter-row > select { min-height: 36px; padding: 0 10px; color: var(--v2-text); background: var(--v2-surface); border: 1px solid var(--v2-border); border-radius: 8px; font: inherit; font-size: 11px; }
+.v2-advanced-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.v2-advanced-milestone h3 { margin: 13px 0 5px; font-size: 15px; }
+.v2-advanced-milestone p { color: var(--v2-muted); font-size: 12px; line-height: 1.55; }
+.v2-advanced-milestone .v2-inline-link { display: inline-flex; margin-top: 15px; }
+.v2-report-bar-row { display: grid; grid-template-columns: 95px 1fr 24px; align-items: center; gap: 11px; margin: 15px 0; color: var(--v2-muted); font-size: 11px; text-transform: capitalize; }
+.v2-report-bar-row strong { color: var(--v2-text); text-align: right; font-size: 12px; }
+.v2-report-stat { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--v2-border); color: var(--v2-muted); font-size: 12px; }
+.v2-report-stat strong { color: var(--v2-text); font-size: 15px; }
+@media (max-width: 760px) {
+  .v2-advanced-row { align-items: flex-start; flex-direction: column; }
+  .v2-advanced-row-actions { justify-content: flex-start; width: 100%; }
+  .v2-advanced-card-grid { grid-template-columns: 1fr; }
+  .v2-report-bar-row { grid-template-columns: 78px 1fr 20px; }
+}
