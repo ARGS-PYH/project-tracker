@@ -65,12 +65,16 @@ function TaskForm({ milestones, onCreate, busy }) {
 
   const submit = async event => {
     event.preventDefault()
-    await onCreate({ title, description, priority, dueDate, milestoneId })
-    setTitle('')
-    setDescription('')
-    setPriority('medium')
-    setDueDate('')
-    setMilestoneId('')
+    try {
+      await onCreate({ title, description, priority, dueDate, milestoneId })
+      setTitle('')
+      setDescription('')
+      setPriority('medium')
+      setDueDate('')
+      setMilestoneId('')
+    } catch {
+      // The parent displays the actionable Firestore permission or network error.
+    }
   }
 
   return (
@@ -95,10 +99,14 @@ function MilestoneForm({ onCreate, busy }) {
 
   const submit = async event => {
     event.preventDefault()
-    await onCreate({ title, description, dueDate })
-    setTitle('')
-    setDescription('')
-    setDueDate('')
+    try {
+      await onCreate({ title, description, dueDate })
+      setTitle('')
+      setDescription('')
+      setDueDate('')
+    } catch {
+      // Keep the form values so the user can retry after the parent error is shown.
+    }
   }
 
   return (
