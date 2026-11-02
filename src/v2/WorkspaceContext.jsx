@@ -29,26 +29,102 @@ export function WorkspaceProvider({ children }) {
     }
 
     setOrganisationLoading(true)
-    const ref = collection(db, 'users', user.uid, 'organisations')
-    const unsubscribe = onSnapshot(ref, snapshot => {
-      const records = snapshot.docs
-        .map(item => ({ id: item.id, ...item.data() }))
-        .filter(item => item.status !== 'suspended')
+    const indexRef = collection(db, 'users', user.uid, 'organisations')
+    let active = true
+    let indexLoaded = false
+    let initialIds = new Set()
+    const indexRecords = new Map()
+    const membershipRecords = new Map()
+    const membershipListeners = new Map()
+    const settledInitialIds = new Set()
+
+    const publish = () => {
+      if (!active) return
+      const records = [...indexRecords.entries()]
+        .map(([id, indexData]) => {
+          const membership = membershipRecords.get(id)
+          if (!membership || membership.status !== 'active') return null
+          return {
+            id,
+            ...indexData,
+            ...membership,
+            name: indexData.name || membership.name || 'Organisation',
+            role: membership.role,
+            status: membership.status
+          }
+        })
+        .filter(Boolean)
         .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+
       setOrganisations(records)
-      setSelectedOrgId(current => {
-        const preferred = current || (() => {
-          try { return localStorage.getItem('pltk_selected_org') || '' } catch { return '' }
-        })()
-        return records.some(item => item.id === preferred) ? preferred : (records[0]?.id || '')
-      })
-      setOrganisationLoading(false)
+      const initialSettled = indexLoaded && [...initialIds].every(id => settledInitialIds.has(id))
+      if (initialSettled) {
+        setSelectedOrgId(current => {
+          const preferred = current || (() => {
+            try { return localStorage.getItem('pltk_selected_org') || '' } catch { return '' }
+          })()
+          return records.some(item => item.id === preferred) ? preferred : (records[0]?.id || '')
+        })
+        setOrganisationLoading(false)
+      }
+    }
+
+    const unsubscribeIndex = onSnapshot(indexRef, snapshot => {
+      const nextRecords = new Map(snapshot.docs.map(item => [item.id, item.data()]))
+
+      if (!indexLoaded) {
+        indexLoaded = true
+        initialIds = new Set(nextRecords.keys())
+        if (!initialIds.size) setOrganisationLoading(false)
+      }
+
+      for (const [id, unsubscribe] of membershipListeners.entries()) {
+        if (!nextRecords.has(id)) {
+          unsubscribe()
+          membershipListeners.delete(id)
+          membershipRecords.delete(id)
+          settledInitialIds.delete(id)
+        }
+      }
+
+      indexRecords.clear()
+      nextRecords.forEach((value, key) => indexRecords.set(key, value))
+
+      for (const id of nextRecords.keys()) {
+        if (membershipListeners.has(id)) continue
+        const memberRef = doc(db, 'organisations', id, 'members', user.uid)
+        const unsubscribe = onSnapshot(memberRef, memberSnapshot => {
+          if (!active) return
+          if (memberSnapshot.exists() && memberSnapshot.data().status === 'active') {
+            membershipRecords.set(id, memberSnapshot.data())
+          } else {
+            membershipRecords.delete(id)
+          }
+          settledInitialIds.add(id)
+          publish()
+        }, () => {
+          if (!active) return
+          membershipRecords.delete(id)
+          settledInitialIds.add(id)
+          setError('We could not verify your organisation membership. Contact an organisation administrator.')
+          publish()
+        })
+        membershipListeners.set(id, unsubscribe)
+      }
+
+      publish()
     }, () => {
       setError('We could not load your organisations. Check your connection and access.')
+      setOrganisations([])
       setOrganisationLoading(false)
     })
 
-    return unsubscribe
+    return () => {
+      active = false
+      unsubscribeIndex()
+      membershipListeners.forEach(unsubscribe => unsubscribe())
+      membershipListeners.clear()
+    }
   }, [user?.uid, user?.emailVerified])
 
   useEffect(() => {
