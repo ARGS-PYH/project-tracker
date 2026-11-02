@@ -193,6 +193,8 @@ export function WorkspaceProvider({ children }) {
     })
     batch.set(doc(db, 'organisations', selectedOrgId, 'projects', projectRef.id, 'members', user.uid), {
       uid: user.uid,
+      displayName: user.displayName || '',
+      email: user.email || '',
       role: 'project_manager',
       status: 'active',
       joinedAt: createdAt
