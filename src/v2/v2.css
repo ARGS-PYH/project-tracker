@@ -605,3 +605,17 @@
   .v2-comment-form { align-items: stretch; flex-direction: column; }
   .v2-file-row { align-items: flex-start; flex-wrap: wrap; }
 }
+
+
+.v2-overview-milestones { display: flex; flex-direction: column; }
+.v2-overview-milestone-row { display: flex; align-items: center; gap: 10px; padding: 11px 0; text-decoration: none; border-bottom: 1px solid var(--v2-border); }
+.v2-overview-milestone-row:last-child { border-bottom: 0; }
+.v2-overview-milestone-row > span:nth-child(2) { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.v2-overview-milestone-row strong { color: var(--v2-text); font-size: 11px; }
+.v2-overview-milestone-row small { color: var(--v2-muted); font-size: 10px; }
+.v2-overview-milestone-row time { color: var(--v2-muted); font-size: 10px; white-space: nowrap; }
+.v2-task-timeline { display: flex; flex-direction: column; gap: 18px; }
+.v2-task-timeline-group { display: flex; flex-direction: column; gap: 8px; }
+.v2-task-timeline-date { display: flex; align-items: center; gap: 8px; color: var(--v2-brand); font-size: 11px; }
+.v2-task-timeline-date span { margin-left: auto; color: var(--v2-muted); font-size: 10px; }
+.v2-task-edit-form { margin-top: 16px; padding: 16px; border: 1px solid var(--v2-brand-border); border-radius: 11px; background: var(--v2-brand-soft); }
