@@ -140,13 +140,18 @@ export function OverviewPage() {
 export function LaunchesPage() {
   const { projects, projectsLoading } = useOutletContext()
   const navigate = useNavigate()
+  const [search, setSearch] = useState('')
+  const filteredProjects = projects.filter(project => {
+    const term = search.trim().toLowerCase()
+    return !term || project.name?.toLowerCase().includes(term) || project.description?.toLowerCase().includes(term)
+  })
   return (
     <div className="v2-page">
       <PageHeader eyebrow="PROJECT PORTFOLIO" title="Launches" description="Plan, coordinate and track every product launch in this organisation."
         action={<button className="v2-button v2-button-primary" onClick={() => navigate('/app/launches/new')}><Icon name="plus" size={17}/> New launch</button>}/>
       <div className="v2-filter-row">
-        <div className="v2-search-box"><Icon name="search" size={17}/><input placeholder="Search launches" aria-label="Search launches" onChange={event => document.dispatchEvent(new CustomEvent('pltk:launch-search', { detail: event.target.value }))}/></div>
-        <span className="v2-result-count">{projects.length} {projects.length === 1 ? 'launch' : 'launches'}</span>
+        <div className="v2-search-box"><Icon name="search" size={17}/><input placeholder="Search launches" aria-label="Search launches" value={search} onChange={event => setSearch(event.target.value)}/></div>
+        <span className="v2-result-count">{filteredProjects.length} {filteredProjects.length === 1 ? 'launch' : 'launches'}</span>
       </div>
       {projectsLoading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launches…</div> : projects.length ? (
         <div className="v2-launch-grid">{projects.map(project => <LaunchCard key={project.id} project={project}/>)}</div>
