@@ -127,7 +127,7 @@ function MilestoneForm({ onCreate, busy }) {
   )
 }
 
-function MilestoneCard({ milestone, tasks }) {
+function MilestoneCard({ milestone, tasks, canManage, onStatusChange }) {
   const related = tasks.filter(task => task.milestoneId === milestone.id)
   const completed = related.filter(task => task.status === 'done').length
   const percent = related.length ? Math.round(completed / related.length * 100) : 0
@@ -137,6 +137,7 @@ function MilestoneCard({ milestone, tasks }) {
       <strong>{milestone.title}</strong>
       {milestone.description && <p>{milestone.description}</p>}
       <div className="v2-launch-progress"><div className="v2-launch-progress-label"><span>{completed} of {related.length} linked tasks complete</span><strong>{percent}%</strong></div><div className="v2-progress-track"><span style={{width: percent + '%'}}/></div></div>
+      <div className="v2-milestone-status-row"><span>Checkpoint status</span>{canManage ? <select value={milestone.status || 'not_started'} onChange={event => onStatusChange(milestone, event.target.value)}><option value="not_started">Not started</option><option value="in_progress">In progress</option><option value="blocked">Blocked</option><option value="complete">Complete</option></select> : <strong>{(milestone.status || 'not_started').replace('_',' ')}</strong>}</div>
     </article>
   )
 }
@@ -413,6 +414,38 @@ export default function LaunchWorkspacePage() {
     }
   }
 
+  const changeMilestoneStatus = async (milestone, status) => {
+    if (!canManageTeam) return
+    setError('')
+    setNotice('')
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'milestones', milestone.id), {
+        status,
+        updatedAt: serverTimestamp()
+      })
+      await recordActivity('milestone_status_changed', 'Changed milestone "' + milestone.title + '" to ' + status.replace('_', ' ') + '.', milestone.id)
+      setNotice('Milestone status updated.')
+    } catch {
+      setError('Milestone status could not be updated. Check your project permissions.')
+    }
+  }
+
+  const changeLaunchStatus = async status => {
+    if (!canManageTeam) return
+    setError('')
+    setNotice('')
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId), {
+        status,
+        updatedAt: serverTimestamp()
+      })
+      await recordActivity('launch_status_changed', 'Changed launch status to ' + status.replace('_', ' ') + '.')
+      setNotice('Launch status updated.')
+    } catch {
+      setError('Launch status could not be updated. Check your project permissions.')
+    }
+  }
+
   const updateTask = async values => {
     if (!editingTask || !canContribute) return
     setBusy(true)
@@ -472,7 +505,7 @@ export default function LaunchWorkspacePage() {
       <Link className="v2-back-link" to="/app/launches"><Icon name="chevron" size={15}/> Back to launches</Link>
       <div className="v2-launch-title-row">
         <div><span className="v2-eyebrow">LAUNCH WORKSPACE</span><h1>{project.name}</h1><p>{project.description || 'Build the delivery plan for this product launch.'}</p></div>
-        <span className={'v2-status-pill status-' + (project.status || 'planning')}>{project.status || 'planning'}</span>
+        {canManageTeam ? <select className="v2-launch-status-select" aria-label="Launch lifecycle status" value={project.status || 'planning'} onChange={event => changeLaunchStatus(event.target.value)}>{['planning','in_progress','testing','ready','launched','paused'].map(value => <option key={value} value={value}>{value.replace('_',' ')}</option>)}</select> : <span className={'v2-status-pill status-' + (project.status || 'planning')}>{project.status || 'planning'}</span>}
       </div>
       {error && <div className="v2-alert v2-alert-error" role="alert">{error}</div>}
       {notice && <div className="v2-alert v2-alert-success" role="status">{notice}</div>}
@@ -537,7 +570,7 @@ export default function LaunchWorkspacePage() {
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch milestones</h2><p>Define important delivery checkpoints and see the tasks linked to each one.</p></div></div>
           {canManageTeam && <MilestoneForm onCreate={createMilestone} busy={busy}/>}
-          {milestones.length ? <div className="v2-milestone-grid">{milestones.map(item => <MilestoneCard key={item.id} milestone={item} tasks={tasks}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="flag" size={17}/></span><div><strong>No milestones defined</strong><p>Add key deliverables such as product approval, QA sign-off and go-to-market readiness.</p></div></div>}
+          {milestones.length ? <div className="v2-milestone-grid">{milestones.map(item => <MilestoneCard key={item.id} milestone={item} tasks={tasks} canManage={canManageTeam} onStatusChange={changeMilestoneStatus}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="flag" size={17}/></span><div><strong>No milestones defined</strong><p>Add key deliverables such as product approval, QA sign-off and go-to-market readiness.</p></div></div>}
         </section>
       ) : activeTab === 'readiness' ? (
         <ReadinessPanel project={project} canManage={canManageTeam} onSave={saveReadiness} busy={readinessBusy}/>
