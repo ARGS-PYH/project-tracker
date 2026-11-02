@@ -11,10 +11,12 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Organisation-level launches collection and launch creation.
 - Launch workspace with live task and milestone listeners.
 - Task creation, editing, priority, due date, milestone link and status updates.
-- Task list, Kanban board and due-date timeline views.
+- Task list, draggable Kanban board, due-date timeline and monthly calendar views.
+- Task subtasks with completion tracking.
+- Task deletion with comment cleanup for project managers and organisation administrators.
 - Task comments with author-scoped deletion and project-scoped read access.
 - Project file upload/download with role-based Storage access and size/type limits.
-- Milestone creation and progress derived from linked task records.
+- Milestone creation, editing, lifecycle status updates and progress derived from linked task records.
 - Evidence-backed launch readiness checklist saved on the launch record.
 - Append-only project activity records for core delivery actions.
 - Live organisation-wide My Tasks, Milestones and Reports pages.
@@ -34,7 +36,7 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Milestone editing and approval workflows remain incomplete.
 - Activity is written by authenticated project contributors and is append-only; it has not yet been independently audited.
 - Notifications are read from the user's notification collection, but event generation, delivery preferences and email/push delivery remain incomplete.
-- Teams are organisational groupings; launch/team assignment and team-specific task filters are not yet implemented.
+- Organisation teams can be assigned to launches; team-specific task filters remain incomplete.
 - Invitation links are shareable manually; automated invitation email delivery remains incomplete.
 - Existing Express endpoints have not yet been redesigned for organisation-scoped, authenticated actions.
 - Firestore and Storage rules have not yet been verified with automated emulator tests; the new task comments, activity and file paths still need emulator coverage.
