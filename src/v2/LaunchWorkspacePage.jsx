@@ -90,7 +90,7 @@ function TaskRow({ task, onStatusChange, onEdit, onOpenComments, readOnly = fals
         <div className="v2-task-copy">
           <strong>{task.title}</strong>
           {task.description && <p>{task.description}</p>}
-          <div className="v2-task-meta"><span><Icon name="calendar" size={12}/>{formatDate(task.dueDate)}</span><span className={'v2-priority priority-' + (task.priority || 'medium')}>{task.priority || 'medium'} priority</span>{task.assignedToName && <span><Icon name="user" size={12}/>{task.assignedToName}</span>}</div>
+          <div className="v2-task-meta"><span><Icon name="calendar" size={12}/>{formatDate(task.dueDate)}</span><span className={'v2-priority priority-' + (task.priority || 'medium')}>{task.priority || 'medium'} priority</span>{task.assignedToName && <span><Icon name="user" size={12}/>{task.assignedToName}</span>}{task.subtasks?.length > 0 && <span><Icon name="check" size={12}/>{task.subtasks.filter(item => item.complete).length}/{task.subtasks.length} steps</span>}</div>
         </div>
       </div>
       <div className="v2-task-controls">
@@ -652,6 +652,7 @@ export default function LaunchWorkspacePage() {
                     <strong>{task.title}</strong>
                     <small>{task.priority || 'medium'} priority · {formatDate(task.dueDate)}</small>
                     {task.assignedToName && <small>Assigned to {task.assignedToName}</small>}
+                    {task.subtasks?.length > 0 && <small>{task.subtasks.filter(item => item.complete).length} of {task.subtasks.length} steps complete</small>}
                     <div className="v2-kanban-actions">
                       <select aria-label={'Change status for ' + task.title} value={task.status || 'todo'} disabled={!canContribute} onChange={event => changeTaskStatus(task.id, event.target.value)}>{taskStatuses.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select>
                       <button className="v2-text-button" onClick={() => setActiveTask(task)}>Discussion</button>
@@ -665,7 +666,7 @@ export default function LaunchWorkspacePage() {
           ) : taskView === 'timeline' ? (
             <div className="v2-task-timeline">{timelineGroups.map(([date, groupedTasks]) => <section className="v2-task-timeline-group" key={date}><div className="v2-task-timeline-date"><Icon name="calendar" size={15}/><strong>{formatDate(date)}</strong><span>{groupedTasks.length} tasks</span></div><div className="v2-task-list">{groupedTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div></section>)}</div>
           ) : taskView === 'calendar' ? (
-            <MonthCalendar tasks={tasks} milestones={milestones} month={calendarMonth} onMonthChange={setCalendarMonth} onOpenTask={setActiveTask}/>
+            <MonthCalendar tasks={filteredTasks} milestones={milestones} month={calendarMonth} onMonthChange={setCalendarMonth} onOpenTask={setActiveTask}/>
           ) : (
             <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} onEdit={setEditingTask} onOpenComments={setActiveTask} readOnly={!canContribute}/>)}</div>
           ) : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : canContribute ? 'Create the first task for this launch using the form above.' : 'A project contributor can add the first task.'}</p></div></div>}
