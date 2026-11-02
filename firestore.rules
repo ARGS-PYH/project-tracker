@@ -155,6 +155,20 @@ service cloud.firestore {
         allow delete: if isOrgAdmin(orgId)
           && memberUid != request.auth.uid
           && resource.data.role != 'owner';
+
+        // Project index entries are visible only to their associated user.
+        // Organisation admins and project managers can maintain the index when
+        // granting or revoking explicit project membership.
+        match /projects/{projectId} {
+          allow read: if signedIn() && request.auth.uid == memberUid;
+          allow create, update: if (
+              isOrgAdmin(orgId) || canManageProject(orgId, projectId)
+            )
+            && request.resource.data.projectId == projectId
+            && request.resource.data.organisationId == orgId
+            && request.resource.data.uid == memberUid;
+          allow delete: if isOrgAdmin(orgId) || canManageProject(orgId, projectId);
+        }
       }
 
       match /teams/{teamId} {
