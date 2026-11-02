@@ -153,9 +153,11 @@ export function LaunchesPage() {
         <div className="v2-search-box"><Icon name="search" size={17}/><input placeholder="Search launches" aria-label="Search launches" value={search} onChange={event => setSearch(event.target.value)}/></div>
         <span className="v2-result-count">{filteredProjects.length} {filteredProjects.length === 1 ? 'launch' : 'launches'}</span>
       </div>
-      {projectsLoading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launches…</div> : projects.length ? (
-        <div className="v2-launch-grid">{projects.map(project => <LaunchCard key={project.id} project={project}/>)}</div>
-      ) : <EmptyLaunches onCreate={() => navigate('/app/launches/new')}/>}
+      {projectsLoading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launches…</div> : filteredProjects.length ? (
+        <div className="v2-launch-grid">{filteredProjects.map(project => <LaunchCard key={project.id} project={project}/>)}</div>
+      ) : projects.length ? (
+        <div className="v2-empty-state v2-empty-state-compact"><h3>No matching launches</h3><p>Try another search term.</p></div>
+      ) : <EmptyLaunches onCreate={() => navigate('/app/launches/new')}/>
     </div>
   )
 }
