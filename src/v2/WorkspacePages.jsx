@@ -155,7 +155,7 @@ export function LaunchesPage() {
       </div>
       {projectsLoading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launches…</div> : filteredProjects.length ? (
         <div className="v2-launch-grid">{filteredProjects.map(project => <LaunchCard key={project.id} project={project}/>)}</div>
-      ) : projects.length ? (
+      ) : filteredProjects.length ? (
         <div className="v2-empty-state v2-empty-state-compact"><h3>No matching launches</h3><p>Try another search term.</p></div>
       ) : <EmptyLaunches onCreate={() => navigate('/app/launches/new')}/>
     </div>
