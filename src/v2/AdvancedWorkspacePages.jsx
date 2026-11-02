@@ -64,6 +64,9 @@ export function useProjectData() {
     let active = true
     setLoading(true)
     setError('')
+    setTasksByProject({})
+    setMilestonesByProject({})
+    setRolesByProject({})
     const ids = projectKey.split('|')
     const unsubscribers = []
 
