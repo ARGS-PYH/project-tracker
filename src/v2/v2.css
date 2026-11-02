@@ -543,3 +543,65 @@
   .v2-advanced-card-grid { grid-template-columns: 1fr; }
   .v2-report-bar-row { grid-template-columns: 78px 1fr 20px; }
 }
+
+
+/* Launch delivery, readiness and collaboration */
+.v2-task-view-switcher { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--v2-border); border-radius: 9px; background: var(--v2-surface-soft); }
+.v2-task-view-switcher button { border: 0; border-radius: 6px; padding: 7px 10px; color: var(--v2-muted); background: transparent; font: inherit; font-size: 11px; font-weight: 650; cursor: pointer; }
+.v2-task-view-switcher button.active { background: var(--v2-surface); color: var(--v2-brand); box-shadow: var(--v2-shadow); }
+.v2-task-controls { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 9px; }
+.v2-task-controls .v2-text-button { font-size: 11px; }
+.v2-kanban-board { display: grid; grid-template-columns: repeat(5, minmax(190px, 1fr)); gap: 12px; overflow-x: auto; padding: 3px 0 10px; }
+.v2-kanban-column { min-width: 190px; padding: 10px; border-radius: 12px; background: var(--v2-surface-soft); border: 1px solid var(--v2-border); }
+.v2-kanban-column-heading { display: flex; align-items: center; justify-content: space-between; margin: 1px 1px 11px; font-size: 11px; color: var(--v2-text); }
+.v2-kanban-column-heading span { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 20px; background: var(--v2-brand-soft); color: var(--v2-brand); }
+.v2-kanban-card { display: flex; flex-direction: column; gap: 8px; margin-bottom: 9px; padding: 12px; border-radius: 10px; background: var(--v2-surface); border: 1px solid var(--v2-border); box-shadow: var(--v2-shadow); }
+.v2-kanban-card > strong { font-size: 12px; line-height: 1.5; }
+.v2-kanban-card > small { color: var(--v2-muted); font-size: 10px; }
+.v2-kanban-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--v2-border); padding-top: 8px; }
+.v2-kanban-actions select { max-width: 110px; min-height: 29px; padding: 0 6px; color: var(--v2-text); background: var(--v2-surface); border: 1px solid var(--v2-border); border-radius: 6px; font: inherit; font-size: 10px; }
+.v2-kanban-empty { padding: 18px 4px; text-align: center; color: var(--v2-subtle); font-size: 11px; }
+.v2-readiness-summary { display: flex; align-items: center; gap: 22px; padding: 18px; margin-bottom: 18px; border-radius: 13px; background: var(--v2-brand-soft); }
+.v2-readiness-score { width: 92px; height: 92px; flex: 0 0 92px; display: flex; align-items: center; justify-content: center; flex-direction: column; border: 5px solid var(--v2-brand); border-radius: 50%; color: var(--v2-brand); background: var(--v2-surface); }
+.v2-readiness-score strong { font-size: 21px; line-height: 1.1; }
+.v2-readiness-score span { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; font-weight: 800; }
+.v2-readiness-copy { flex: 1; }
+.v2-readiness-copy h2 { margin: 0 0 5px; font-size: 17px; color: var(--v2-text); }
+.v2-readiness-copy p { margin: 0 0 12px; color: var(--v2-muted); font-size: 11px; line-height: 1.5; }
+.v2-readiness-group { margin: 18px 0 5px; }
+.v2-readiness-group h3 { margin: 0 0 8px; font-size: 12px; color: var(--v2-brand); text-transform: uppercase; letter-spacing: .08em; }
+.v2-readiness-item { display: grid; grid-template-columns: minmax(220px, 1.1fr) minmax(180px, .9fr); align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--v2-border); }
+.v2-readiness-check { display: flex; align-items: center; gap: 11px; cursor: pointer; }
+.v2-readiness-check input { width: 17px; height: 17px; accent-color: var(--v2-brand); }
+.v2-readiness-check span { display: flex; flex-direction: column; gap: 4px; }
+.v2-readiness-check strong { font-size: 12px; color: var(--v2-text); }
+.v2-readiness-check small, .v2-readiness-evidence-text { color: var(--v2-muted); font-size: 10px; }
+.v2-readiness-evidence { width: 100%; min-height: 34px; padding: 7px 9px; color: var(--v2-text); background: var(--v2-surface-soft); border: 1px solid var(--v2-border); border-radius: 7px; font: inherit; font-size: 11px; }
+.v2-comments-panel, .v2-files-panel, .v2-activity-panel { margin-top: 16px; padding: 20px; }
+.v2-comments-list, .v2-files-list, .v2-activity-list { display: flex; flex-direction: column; }
+.v2-comment { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--v2-border); }
+.v2-comment-body { flex: 1; min-width: 0; }
+.v2-comment-body > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.v2-comment-body strong { font-size: 11px; }
+.v2-comment-body small { color: var(--v2-subtle); font-size: 10px; }
+.v2-comment-body p { margin: 7px 0 0; color: var(--v2-text); font-size: 12px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.v2-comment-form { display: flex; align-items: flex-end; gap: 10px; margin-top: 15px; }
+.v2-comment-form textarea { flex: 1; min-height: 62px; resize: vertical; padding: 10px; color: var(--v2-text); background: var(--v2-surface-soft); border: 1px solid var(--v2-border); border-radius: 8px; font: inherit; font-size: 12px; }
+.v2-upload-button { cursor: pointer; }
+.v2-file-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--v2-border); }
+.v2-file-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: var(--v2-brand); background: var(--v2-brand-soft); }
+.v2-file-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.v2-file-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.v2-file-info small { color: var(--v2-muted); font-size: 10px; }
+.v2-activity-row { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--v2-border); }
+.v2-activity-row > div { display: flex; flex-direction: column; gap: 5px; }
+.v2-activity-row strong { font-size: 12px; font-weight: 650; }
+.v2-activity-row small { color: var(--v2-muted); font-size: 10px; }
+@media (max-width: 760px) {
+  .v2-kanban-board { grid-template-columns: repeat(5, minmax(225px, 1fr)); }
+  .v2-readiness-summary { align-items: flex-start; gap: 14px; }
+  .v2-readiness-score { width: 76px; height: 76px; flex-basis: 76px; }
+  .v2-readiness-item { grid-template-columns: 1fr; gap: 8px; }
+  .v2-comment-form { align-items: stretch; flex-direction: column; }
+  .v2-file-row { align-items: flex-start; flex-wrap: wrap; }
+}
