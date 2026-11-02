@@ -36,7 +36,7 @@ function StatusPill({ value }) {
   return <span className={'v2-task-status status-' + status.value}>{status.label}</span>
 }
 
-function TaskRow({ task, onStatusChange }) {
+function TaskRow({ task, onStatusChange, readOnly = false }) {
   return (
     <div className="v2-task-row">
       <div className="v2-task-main">
@@ -49,7 +49,7 @@ function TaskRow({ task, onStatusChange }) {
       </div>
       <div className="v2-task-controls">
         <StatusPill value={task.status}/>
-        <select aria-label={'Update status for ' + task.title} value={task.status || 'todo'} onChange={event => onStatusChange(task.id, event.target.value)}>
+        <select aria-label={'Update status for ' + task.title} value={task.status || 'todo'} onChange={event => onStatusChange(task.id, event.target.value)} disabled={readOnly}>
           {taskStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}
         </select>
       </div>
@@ -227,6 +227,8 @@ export default function LaunchWorkspacePage() {
   const progress = tasks.length ? Math.round(completedCount / tasks.length * 100) : 0
   const canManageTeam = ['owner', 'admin'].includes(selectedOrganisation?.role)
     || projectMembers.some(member => member.uid === user?.uid && member.role === 'project_manager')
+  const canContribute = canManageTeam
+    || projectMembers.some(member => member.uid === user?.uid && member.role === 'contributor')
   const unassignedMembers = orgMembers.filter(member =>
     !projectMembers.some(projectMember => projectMember.id === member.id)
   )
@@ -377,12 +379,13 @@ export default function LaunchWorkspacePage() {
       {activeTab === 'tasks' ? (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch tasks</h2><p>Track the work required to move this launch forward.</p></div></div>
-          <TaskForm milestones={milestones} onCreate={createTask} busy={busy}/>
+          {canContribute && <TaskForm milestones={milestones} onCreate={createTask} busy={busy}/>}
           <div className="v2-task-filter">
             <strong>All tasks <span>{filteredTasks.length}</span></strong>
             <select aria-label="Filter tasks by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All statuses</option>{taskStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
           </div>
-          {filteredTasks.length ? <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : 'Create the first task for this launch using the form above.'}</p></div></div>}
+          {filteredTasks.length ? <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus} readOnly={!canContribute}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : canContribute ? 'Create the first task for this launch using the form above.' : 'A project contributor can add the first task.'}</p></div></div>}
+          {!canContribute && <p className="v2-invite-footnote">You have read-only access to this launch.</p>}
         </section>
       ) : activeTab === 'milestones' ? (
         <section className="v2-panel v2-delivery-panel">
