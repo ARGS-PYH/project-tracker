@@ -459,9 +459,20 @@ export default function LaunchWorkspacePage() {
         comments.docs.slice(index, index + 400).forEach(item => batch.delete(item.ref))
         await batch.commit()
       }
+      const dependents = tasks.filter(item => (item.dependsOn || []).includes(task.id))
+      for (let index = 0; index < dependents.length; index += 400) {
+        const batch = writeBatch(db)
+        dependents.slice(index, index + 400).forEach(item => {
+          batch.update(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', item.id), {
+            dependsOn: (item.dependsOn || []).filter(id => id !== task.id),
+            updatedAt: serverTimestamp()
+          })
+        })
+        await batch.commit()
+      }
       await deleteDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', task.id))
-      await recordActivity('task_deleted', 'Deleted task "' + task.title + '".', task.id)
-      setNotice('Task and its discussion deleted.')
+      await recordActivity('task_deleted', 'Deleted task "' + task.title + '" and cleared its prerequisite links.', task.id)
+      setNotice('Task deleted. Its discussion and dependent-task references were cleaned up.')
     } catch {
       setError('Task could not be deleted. Check that you are a project manager or organisation administrator.')
     } finally {
@@ -652,6 +663,15 @@ export default function LaunchWorkspacePage() {
       setError('These dependencies would create a circular task chain. Review the tasks selected and try again.')
       return
     }
+    const subtasks = Array.isArray(values.subtasks) ? values.subtasks : []
+    if (values.status === 'done' && subtasks.some(item => !item.complete)) {
+      setError('Complete all subtasks before marking this task as done.')
+      return
+    }
+    if (values.status === 'done' && dependencies.some(id => tasks.find(item => item.id === id)?.status !== 'done')) {
+      setError('Complete the prerequisite tasks before marking this task as done.')
+      return
+    }
     setBusy(true)
     setError('')
     setNotice('')
@@ -664,7 +684,7 @@ export default function LaunchWorkspacePage() {
         priority: values.priority,
         dueDate: values.dueDate || null,
         milestoneId: values.milestoneId || null,
-        subtasks: Array.isArray(values.subtasks) ? values.subtasks : [],
+        subtasks,
         dependsOn: dependencies,
         assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
         assignedToUid: values.assigneeUid || null,
