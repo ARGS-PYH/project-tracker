@@ -7,7 +7,7 @@ import Icon from './icons.jsx'
 
 export default function InviteAcceptancePage() {
   const { orgId, inviteId } = useParams()
-  const { user, sendVerification, refreshUser } = useAuth()
+  const { user, sendVerification, refreshUser, signOut } = useAuth()
   const navigate = useNavigate()
   const [invitation, setInvitation] = useState(null)
   const [loading, setLoading] = useState(false)
