@@ -6,7 +6,8 @@ import {
   doc,
   onSnapshot,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  writeBatch
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
@@ -136,13 +137,18 @@ function MilestoneCard({ milestone, tasks }) {
 
 export default function LaunchWorkspacePage() {
   const { projectId } = useParams()
-  const { selectedOrgId, projects, projectsLoading } = useWorkspace()
+  const { selectedOrgId, selectedOrganisation, projects, projectsLoading } = useWorkspace()
   const { user } = useAuth()
   const [tasks, setTasks] = useState([])
   const [milestones, setMilestones] = useState([])
+  const [projectMembers, setProjectMembers] = useState([])
+  const [orgMembers, setOrgMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [teamBusy, setTeamBusy] = useState(false)
   const [activeTab, setActiveTab] = useState('tasks')
+  const [memberToAdd, setMemberToAdd] = useState('')
+  const [roleToAssign, setRoleToAssign] = useState('contributor')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -153,17 +159,20 @@ export default function LaunchWorkspacePage() {
       setLoading(false)
       setTasks([])
       setMilestones([])
+      setProjectMembers([])
+      setOrgMembers([])
       return undefined
     }
     setLoading(true)
     let tasksReady = false
     let milestonesReady = false
+    let projectMembersReady = false
+    let orgMembersReady = selectedOrganisation?.role === 'guest'
     const finishIfReady = () => {
-      if (tasksReady && milestonesReady) setLoading(false)
+      if (tasksReady && milestonesReady && projectMembersReady && orgMembersReady) setLoading(false)
     }
-    const tasksRef = collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks')
-    const milestonesRef = collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'milestones')
-    const unsubTasks = onSnapshot(tasksRef, snapshot => {
+    const base = ['organisations', selectedOrgId, 'projects', projectId]
+    const unsubTasks = onSnapshot(collection(db, ...base, 'tasks'), snapshot => {
       setTasks(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a,b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999')))
       tasksReady = true
       finishIfReady()
@@ -172,7 +181,7 @@ export default function LaunchWorkspacePage() {
       tasksReady = true
       finishIfReady()
     })
-    const unsubMilestones = onSnapshot(milestonesRef, snapshot => {
+    const unsubMilestones = onSnapshot(collection(db, ...base, 'milestones'), snapshot => {
       setMilestones(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a,b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999')))
       milestonesReady = true
       finishIfReady()
@@ -181,16 +190,99 @@ export default function LaunchWorkspacePage() {
       milestonesReady = true
       finishIfReady()
     })
+    const unsubProjectMembers = onSnapshot(collection(db, ...base, 'members'), snapshot => {
+      setProjectMembers(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).sort((a,b) => (a.role || '').localeCompare(b.role || '')))
+      projectMembersReady = true
+      finishIfReady()
+    }, () => {
+      setError('Project access details could not be loaded.')
+      projectMembersReady = true
+      finishIfReady()
+    })
+    let unsubOrgMembers = () => {}
+    if (selectedOrganisation?.role !== 'guest') {
+      unsubOrgMembers = onSnapshot(collection(db, 'organisations', selectedOrgId, 'members'), snapshot => {
+        setOrgMembers(snapshot.docs.map(item => ({ id: item.id, ...item.data() })).filter(item => item.status === 'active'))
+        orgMembersReady = true
+        finishIfReady()
+      }, () => {
+        setError('Organisation members could not be loaded for project assignment.')
+        orgMembersReady = true
+        finishIfReady()
+      })
+    } else {
+      setOrgMembers([])
+    }
     return () => {
       unsubTasks()
       unsubMilestones()
+      unsubProjectMembers()
+      unsubOrgMembers()
     }
-  }, [selectedOrgId, projectId])
+  }, [selectedOrgId, projectId, selectedOrganisation?.role])
 
   const filteredTasks = useMemo(() => tasks.filter(task => statusFilter === 'all' || task.status === statusFilter), [tasks, statusFilter])
   const completedCount = tasks.filter(task => task.status === 'done').length
   const blockedCount = tasks.filter(task => task.status === 'blocked').length
   const progress = tasks.length ? Math.round(completedCount / tasks.length * 100) : 0
+  const canManageTeam = ['owner', 'admin'].includes(selectedOrganisation?.role)
+    || projectMembers.some(member => member.uid === user?.uid && member.role === 'project_manager')
+  const unassignedMembers = orgMembers.filter(member =>
+    !projectMembers.some(projectMember => projectMember.id === member.id)
+  )
+
+  const addProjectMember = async () => {
+    if (!memberToAdd || !canManageTeam || !project) return
+    setTeamBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const batch = writeBatch(db)
+      const memberRef = doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'members', memberToAdd)
+      const indexRef = doc(db, 'organisations', selectedOrgId, 'members', memberToAdd, 'projects', projectId)
+      batch.set(memberRef, {
+        uid: memberToAdd,
+        role: roleToAssign,
+        status: 'active',
+        grantedBy: user.uid,
+        joinedAt: serverTimestamp()
+      })
+      batch.set(indexRef, {
+        uid: memberToAdd,
+        organisationId: selectedOrgId,
+        projectId,
+        projectName: project.name,
+        role: roleToAssign,
+        grantedAt: serverTimestamp()
+      })
+      await batch.commit()
+      setMemberToAdd('')
+      setRoleToAssign('contributor')
+      setNotice('Project access granted.')
+    } catch {
+      setError('Project access could not be granted. Check that you are a project manager or organisation admin.')
+    } finally {
+      setTeamBusy(false)
+    }
+  }
+
+  const removeProjectMember = async member => {
+    if (!canManageTeam || member.role === 'project_manager') return
+    setTeamBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const batch = writeBatch(db)
+      batch.delete(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'members', member.id))
+      batch.delete(doc(db, 'organisations', selectedOrgId, 'members', member.id, 'projects', projectId))
+      await batch.commit()
+      setNotice('Project access removed.')
+    } catch {
+      setError('Project access could not be removed. Please try again.')
+    } finally {
+      setTeamBusy(false)
+    }
+  }
 
   const createTask = async values => {
     if (!project || !user?.uid) return
@@ -279,6 +371,7 @@ export default function LaunchWorkspacePage() {
       <div className="v2-launch-tabs" role="tablist" aria-label="Launch sections">
         <button role="tab" aria-selected={activeTab === 'tasks'} className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}><Icon name="list" size={15}/> Tasks <span>{tasks.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'milestones'} className={activeTab === 'milestones' ? 'active' : ''} onClick={() => setActiveTab('milestones')}><Icon name="flag" size={15}/> Milestones <span>{milestones.length}</span></button>
+        <button role="tab" aria-selected={activeTab === 'team'} className={activeTab === 'team' ? 'active' : ''} onClick={() => setActiveTab('team')}><Icon name="users" size={15}/> Team <span>{projectMembers.length}</span></button>
       </div>
 
       {activeTab === 'tasks' ? (
@@ -291,11 +384,31 @@ export default function LaunchWorkspacePage() {
           </div>
           {filteredTasks.length ? <div className="v2-task-list">{filteredTasks.map(task => <TaskRow key={task.id} task={task} onStatusChange={changeTaskStatus}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="check" size={17}/></span><div><strong>{tasks.length ? 'No tasks match this filter' : 'No tasks added yet'}</strong><p>{tasks.length ? 'Choose another status to see more tasks.' : 'Create the first task for this launch using the form above.'}</p></div></div>}
         </section>
-      ) : (
+      ) : activeTab === 'milestones' ? (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch milestones</h2><p>Define important delivery checkpoints and see the tasks linked to each one.</p></div></div>
-          <MilestoneForm onCreate={createMilestone} busy={busy}/>
+          {canManageTeam && <MilestoneForm onCreate={createMilestone} busy={busy}/>}
           {milestones.length ? <div className="v2-milestone-grid">{milestones.map(item => <MilestoneCard key={item.id} milestone={item} tasks={tasks}/>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="flag" size={17}/></span><div><strong>No milestones defined</strong><p>Add key deliverables such as product approval, QA sign-off and go-to-market readiness.</p></div></div>}
+        </section>
+      ) : (
+        <section className="v2-panel v2-delivery-panel">
+          <div className="v2-panel-heading"><div><h2>Launch team</h2><p>Control which organisation members can view or contribute to this launch.</p></div></div>
+          {canManageTeam && (
+            <div className="v2-project-member-form">
+              <label className="v2-field"><span>Organisation member</span><select value={memberToAdd} onChange={event => setMemberToAdd(event.target.value)}><option value="">Choose a member</option>{unassignedMembers.map(member => <option key={member.id} value={member.id}>{member.displayName || member.email || member.id} · {member.role}</option>)}</select></label>
+              <label className="v2-field"><span>Project access</span><select value={roleToAssign} onChange={event => setRoleToAssign(event.target.value)}><option value="contributor">Contributor — can update tasks</option><option value="viewer">Viewer — read-only access</option></select></label>
+              <button className="v2-button v2-button-primary" onClick={addProjectMember} disabled={teamBusy || !memberToAdd}>{teamBusy ? 'Saving…' : 'Grant access'} <Icon name="plus" size={15}/></button>
+            </div>
+          )}
+          {projectMembers.length ? (
+            <div className="v2-project-member-list">
+              {projectMembers.map(member => {
+                const profile = orgMembers.find(item => item.id === member.id)
+                return <div className="v2-project-member-row" key={member.id}><span className="v2-avatar">{(profile?.displayName || profile?.email || member.uid || 'U').slice(0,1).toUpperCase()}</span><div className="v2-member-info"><strong>{profile?.displayName || profile?.email || 'Project member'}</strong><small>{profile?.email || member.uid}</small></div><span className={'v2-role-pill role-' + member.role}>{member.role.replace('_',' ')}</span>{canManageTeam && member.role !== 'project_manager' && <button className="v2-text-button v2-remove-access" onClick={() => removeProjectMember(member)} disabled={teamBusy}>Remove</button>}</div>
+              })}
+            </div>
+          ) : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="users" size={17}/></span><div><strong>No project members yet</strong><p>Invite organisation colleagues into this launch to share tasks and milestones.</p></div></div>}
+          {!canManageTeam && <p className="v2-invite-footnote">Only project managers and organisation administrators can change launch access.</p>}
         </section>
       )}
     </div>
