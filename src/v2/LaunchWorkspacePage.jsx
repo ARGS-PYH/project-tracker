@@ -44,7 +44,7 @@ function TaskRow({ task, onStatusChange, readOnly = false }) {
         <div className="v2-task-copy">
           <strong>{task.title}</strong>
           {task.description && <p>{task.description}</p>}
-          <div className="v2-task-meta"><span><Icon name="calendar" size={12}/>{formatDate(task.dueDate)}</span><span className={'v2-priority priority-' + (task.priority || 'medium')}>{task.priority || 'medium'} priority</span></div>
+          <div className="v2-task-meta"><span><Icon name="calendar" size={12}/>{formatDate(task.dueDate)}</span><span className={'v2-priority priority-' + (task.priority || 'medium')}>{task.priority || 'medium'} priority</span>{task.assignedToName && <span><Icon name="user" size={12}/>{task.assignedToName}</span>}</div>
         </div>
       </div>
       <div className="v2-task-controls">
@@ -57,22 +57,24 @@ function TaskRow({ task, onStatusChange, readOnly = false }) {
   )
 }
 
-function TaskForm({ milestones, onCreate, busy }) {
+function TaskForm({ milestones, members, currentUserId, onCreate, busy }) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [priority, setPriority] = useState('medium')
   const [dueDate, setDueDate] = useState('')
   const [milestoneId, setMilestoneId] = useState('')
+  const [assigneeUid, setAssigneeUid] = useState(currentUserId || '')
 
   const submit = async event => {
     event.preventDefault()
     try {
-      await onCreate({ title, description, priority, dueDate, milestoneId })
+      await onCreate({ title, description, priority, dueDate, milestoneId, assigneeUid })
       setTitle('')
       setDescription('')
       setPriority('medium')
       setDueDate('')
       setMilestoneId('')
+      setAssigneeUid(currentUserId || '')
     } catch {
       // The parent displays the actionable Firestore permission or network error.
     }
@@ -87,6 +89,7 @@ function TaskForm({ milestones, onCreate, busy }) {
         <label className="v2-field"><span>Priority</span><select value={priority} onChange={e => setPriority(e.target.value)}>{priorities.map(value => <option key={value} value={value}>{value[0].toUpperCase()+value.slice(1)}</option>)}</select></label>
         <label className="v2-field"><span>Due date</span><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}/></label>
         <label className="v2-field"><span>Milestone</span><select value={milestoneId} onChange={e => setMilestoneId(e.target.value)}><option value="">No milestone</option>{milestones.map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
+        <label className="v2-field"><span>Assignee</span><select value={assigneeUid} onChange={e => setAssigneeUid(e.target.value)}><option value="">Unassigned</option>{members.map(member => <option key={member.id} value={member.id}>{member.displayName || member.email || member.id}{member.id === currentUserId ? ' (You)' : ''}</option>)}</select></label>
       </div>
       <div className="v2-form-actions"><button className="v2-button v2-button-primary" disabled={busy || title.trim().length < 2}>{busy ? 'Saving task…' : 'Add task'} <Icon name="plus" size={15}/></button></div>
     </form>
@@ -246,6 +249,8 @@ export default function LaunchWorkspacePage() {
         uid: memberToAdd,
         role: roleToAssign,
         status: 'active',
+        displayName: orgMembers.find(member => member.id === memberToAdd)?.displayName || '',
+        email: orgMembers.find(member => member.id === memberToAdd)?.email || '',
         grantedBy: user.uid,
         joinedAt: serverTimestamp()
       })
@@ -300,7 +305,14 @@ export default function LaunchWorkspacePage() {
         priority: values.priority,
         dueDate: values.dueDate || null,
         milestoneId: values.milestoneId || null,
-        assigneeUids: [user.uid],
+        assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
+        assignedToUid: values.assigneeUid || null,
+        assignedToName: values.assigneeUid
+          ? (projectMembers.find(member => member.id === values.assigneeUid)?.displayName
+            || orgMembers.find(member => member.id === values.assigneeUid)?.displayName
+            || orgMembers.find(member => member.id === values.assigneeUid)?.email
+            || (values.assigneeUid === user.uid ? (user.displayName || user.email) : 'Project member'))
+          : null,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
@@ -379,7 +391,7 @@ export default function LaunchWorkspacePage() {
       {activeTab === 'tasks' ? (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch tasks</h2><p>Track the work required to move this launch forward.</p></div></div>
-          {canContribute && <TaskForm milestones={milestones} onCreate={createTask} busy={busy}/>}
+          {canContribute && <TaskForm milestones={milestones} members={projectMembers} currentUserId={user?.uid} onCreate={createTask} busy={busy}/ >}
           <div className="v2-task-filter">
             <strong>All tasks <span>{filteredTasks.length}</span></strong>
             <select aria-label="Filter tasks by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="all">All statuses</option>{taskStatuses.map(status => <option key={status.value} value={status.value}>{status.label}</option>)}</select>
