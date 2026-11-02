@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   updateDoc,
@@ -354,15 +355,23 @@ export function OrganisationSettingsPage() {
     setError('')
     setNotice('')
     try {
-      const batch = writeBatch(db)
-      batch.update(doc(db, 'organisations', selectedOrgId), {
+      const organisationBatch = writeBatch(db)
+      organisationBatch.update(doc(db, 'organisations', selectedOrgId), {
         name: clean,
         slug: clean.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48),
         updatedAt: serverTimestamp()
       })
-      batch.update(doc(db, 'users', user.uid, 'organisations', selectedOrgId), {name:clean})
-      await batch.commit()
-      setNotice('Organisation settings saved.')
+      await organisationBatch.commit()
+
+      const membersSnapshot = await getDocs(collection(db, 'organisations', selectedOrgId, 'members'))
+      for (let index = 0; index < membersSnapshot.docs.length; index += 400) {
+        const indexBatch = writeBatch(db)
+        membersSnapshot.docs.slice(index, index + 400).forEach(member => {
+          indexBatch.set(doc(db, 'users', member.id, 'organisations', selectedOrgId), { name: clean }, { merge: true })
+        })
+        await indexBatch.commit()
+      }
+      setNotice('Organisation settings saved for all members.')
     } catch {
       setError('Settings could not be saved. Confirm you have administrator access.')
     } finally {
