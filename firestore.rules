@@ -41,6 +41,19 @@ service cloud.firestore {
       return /databases/$(database)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(uid);
     }
 
+    function invitationPath(orgId, invitationId) {
+      return /databases/$(database)/documents/organisations/$(orgId)/invitations/$(invitationId);
+    }
+
+    function isValidInviteTarget(orgId, invitationId) {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && exists(invitationPath(orgId, invitationId))
+        && get(invitationPath(orgId, invitationId)).data.status == 'pending'
+        && get(invitationPath(orgId, invitationId)).data.email == request.auth.token.email
+        && get(invitationPath(orgId, invitationId)).data.expiresAt > request.time;
+    }
+
     function isProjectMember(orgId, projectId) {
       return signedIn()
         && exists(projectMemberPath(orgId, projectId, request.auth.uid))
@@ -108,11 +121,23 @@ service cloud.firestore {
 
         // Initial owner membership must be created in the same atomic batch as
         // the organisation document, whose ownerUid is the signed-in user.
-        allow create: if signedIn()
-          && memberUid == request.auth.uid
-          && getAfter(/databases/$(database)/documents/organisations/$(orgId)).data.ownerUid == request.auth.uid
-          && request.resource.data.role == 'owner'
-          && request.resource.data.status == 'active';
+        allow create: if (
+            signedIn()
+            && memberUid == request.auth.uid
+            && getAfter(/databases/$(database)/documents/organisations/$(orgId)).data.ownerUid == request.auth.uid
+            && request.resource.data.role == 'owner'
+            && request.resource.data.status == 'active'
+          ) || (
+            memberUid == request.auth.uid
+            && request.resource.data.uid == request.auth.uid
+            && request.resource.data.role in ['member', 'guest']
+            && request.resource.data.status == 'active'
+            && request.resource.data.invitationId is string
+            && isValidInviteTarget(orgId, request.resource.data.invitationId)
+            && get(invitationPath(orgId, request.resource.data.invitationId)).data.role == request.resource.data.role
+            && getAfter(invitationPath(orgId, request.resource.data.invitationId)).data.status == 'accepted'
+            && getAfter(invitationPath(orgId, request.resource.data.invitationId)).data.acceptedUid == request.auth.uid
+          );
 
         allow update: if request.resource.data.uid == memberUid
           && (
@@ -138,8 +163,33 @@ service cloud.firestore {
       }
 
       match /invitations/{invitationId} {
-        allow read: if isOrgAdmin(orgId);
-        allow create, update, delete: if isOrgAdmin(orgId);
+        allow list: if isOrgAdmin(orgId);
+        allow get: if isOrgAdmin(orgId) || (
+          signedIn()
+          && request.auth.token.email_verified == true
+          && resource.data.status == 'pending'
+          && resource.data.email == request.auth.token.email
+          && resource.data.expiresAt > request.time
+        );
+        allow create: if isOrgAdmin(orgId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.email is string
+          && request.resource.data.role in ['member', 'guest']
+          && request.resource.data.status == 'pending'
+          && request.resource.data.expiresAt > request.time;
+        allow update: if (
+            isOrgAdmin(orgId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+            && request.resource.data.status == 'revoked'
+          ) || (
+            isValidInviteTarget(orgId, invitationId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedUid', 'acceptedAt'])
+            && request.resource.data.status == 'accepted'
+            && request.resource.data.acceptedUid == request.auth.uid
+            && existsAfter(memberPath(orgId, request.auth.uid))
+            && getAfter(memberPath(orgId, request.auth.uid)).data.invitationId == invitationId
+          );
+        allow delete: if isOrgAdmin(orgId);
       }
 
       match /projects/{projectId} {
