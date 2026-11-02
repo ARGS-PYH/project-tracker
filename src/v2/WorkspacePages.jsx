@@ -47,7 +47,7 @@ function LaunchStatus({ status }) {
   return <span className={'v2-status-pill status-' + (status || 'planning')}>{label}</span>
 }
 
-function LaunchCard({ project, progress = Number(progress) }) {
+function LaunchCard({ project, progress = Number(project.progress || 0) }) {
   return (
     <Link to={'/app/launches/' + project.id} className="v2-launch-card">
       <div className="v2-launch-card-top">
@@ -57,8 +57,8 @@ function LaunchCard({ project, progress = Number(progress) }) {
       <h3>{project.name}</h3>
       <p>{project.description || 'No project description has been added yet.'}</p>
       <div className="v2-launch-progress">
-        <div className="v2-launch-progress-label"><span>Task progress</span><strong>{Number(project.progress || 0)}%</strong></div>
-        <div className="v2-progress-track"><span style={{ width: Math.max(0, Math.min(100, Number(project.progress || 0))) + '%' }}/></div>
+        <div className="v2-launch-progress-label"><span>Task progress</span><strong>{Number(progress)}%</strong></div>
+        <div className="v2-progress-track"><span style={{ width: Math.max(0, Math.min(100, Number(progress))) + '%' }}/></div>
       </div>
       <div className="v2-launch-card-foot">
         <span><Icon name="calendar" size={14}/>{dateLabel(project.targetLaunchDate)}</span>
