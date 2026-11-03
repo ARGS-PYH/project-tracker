@@ -805,3 +805,13 @@
   .v2-deadline-form, .v2-closeout-action { align-items: stretch; flex-direction: column; }
   .v2-deadline-form .v2-field { width: 100%; }
 }
+
+
+/* Permanent launch deletion */
+.v2-delete-project-panel { margin-top: 25px; border-color: color-mix(in srgb, var(--v2-danger) 36%, var(--v2-border)); }
+.v2-panel-icon.danger { color: var(--v2-danger); background: color-mix(in srgb, var(--v2-danger) 10%, var(--v2-surface)); }
+.v2-delete-project-warning { margin: 15px 0; padding: 14px; border: 1px solid color-mix(in srgb, var(--v2-danger) 25%, var(--v2-border)); border-radius: 9px; background: color-mix(in srgb, var(--v2-danger) 6%, var(--v2-surface)); }
+.v2-delete-project-warning strong { color: var(--v2-danger); font-size: 12px; }
+.v2-delete-project-warning p { margin-top: 6px; color: var(--v2-muted); font-size: 11px; line-height: 1.6; }
+.v2-button-danger { color: #fff; background: #b83e42; border: 1px solid #a9363a; }
+.v2-button-danger:hover:not(:disabled) { background: #9f3035; }

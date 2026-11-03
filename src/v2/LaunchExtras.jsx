@@ -104,7 +104,7 @@ export function TaskEditor({ task, milestones, members, tasks, onSave, onCancel,
   )
 }
 
-export function ProjectSettingsPanel({ project, canManage, onSave, busy }) {
+export function ProjectSettingsPanel({ project, canManage, canDelete, onSave, busy, deleting, onDelete }) {
   const [name, setName] = useState(project.name || '')
   const [description, setDescription] = useState(project.description || '')
   const [targetLaunchDate, setTargetLaunchDate] = useState(typeof project.targetLaunchDate === 'string' ? project.targetLaunchDate : '')
@@ -128,6 +128,7 @@ export function ProjectSettingsPanel({ project, canManage, onSave, busy }) {
         <label className="v2-field"><span>Target launch date</span><input type="date" value={targetLaunchDate} onChange={event => setTargetLaunchDate(event.target.value)} disabled={!canManage}/></label>
         {canManage ? <div className="v2-form-actions"><span className="v2-invite-footnote">Changes are shared with everyone who has access to this launch.</span><button className="v2-button v2-button-primary" disabled={busy || name.trim().length < 3}>{busy ? 'Saving…' : 'Save launch settings'} <Icon name="check" size={15}/></button></div> : <p className="v2-invite-footnote">Only a project manager or organisation administrator can edit launch settings.</p>}
       </form>
+      <ProjectDeletionPanel project={project} canDelete={canDelete} busy={deleting} onDelete={onDelete}/>
     </section>
   )
 }
@@ -759,6 +760,23 @@ export function LaunchCloseoutPanel({ project, orgId, projectId, user, canManage
       {project.closeoutExportedAt && <p className="v2-closeout-history">Last archive prepared {timestampToText(project.closeoutExportedAt) || 'previously'} by {project.closeoutExportedBy === user?.uid ? 'you' : 'a workspace manager'}.</p>}
       {error && <div className="v2-alert v2-alert-error">{error}</div>}
       {notice && <div className="v2-alert v2-alert-success">{notice}</div>}
+    </section>
+  )
+}
+
+export function ProjectDeletionPanel({ project, canDelete, busy, onDelete }) {
+  const [confirmation, setConfirmation] = useState('')
+  return (
+    <section className="v2-panel v2-delete-project-panel">
+      <div className="v2-panel-heading">
+        <div><span className="v2-eyebrow">DANGER ZONE</span><h2>Delete this launch</h2><p>Permanently remove this launch and its stored work from the active PLTK workspace.</p></div>
+        <span className="v2-panel-icon danger"><Icon name="trash" size={18}/></span>
+      </div>
+      {!canDelete ? <p className="v2-invite-footnote">Only an organisation owner or administrator can permanently delete a launch.</p> : <>
+        <div className="v2-delete-project-warning"><strong>This cannot be undone.</strong><p>Deleting "{project.name}" removes its tasks, comments, comment images, milestones, activity history, files and project access records. Download the close-out ZIP first if you need a copy.</p></div>
+        <label className="v2-field"><span>Type the launch name to confirm</span><input value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder={project.name} autoComplete="off"/></label>
+        <div className="v2-form-actions"><button type="button" className="v2-button v2-button-danger" disabled={busy || confirmation.trim() !== project.name} onClick={onDelete}>{busy ? 'Deleting launch…' : 'Permanently delete launch'} <Icon name="trash" size={15}/></button></div>
+      </>}
     </section>
   )
 }

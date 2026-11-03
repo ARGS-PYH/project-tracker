@@ -12,6 +12,7 @@ import {
   writeBatch
 } from 'firebase/firestore'
 import { db } from '../firebase.js'
+import { deleteObject, getStorage, listAll, ref as storageRef } from 'firebase/storage'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
@@ -44,6 +45,12 @@ function hasCircularDependency(tasks, targetId, dependencies) {
     return (graph.get(id) || []).some(dependencyId => visit(dependencyId, nextPath))
   }
   return visit(targetId, new Set())
+}
+
+async function collectStorageFiles(folderRef) {
+  const page = await listAll(folderRef)
+  const nested = await Promise.all(page.prefixes.map(prefix => collectStorageFiles(prefix)))
+  return [...page.items, ...nested.flat()]
 }
 
 function dateKey(date) {
@@ -248,6 +255,7 @@ export default function LaunchWorkspacePage() {
   const [orgTeams, setOrgTeams] = useState([])
   const [draggingTaskId, setDraggingTaskId] = useState('')
   const [readinessBusy, setReadinessBusy] = useState(false)
+  const [deletingProject, setDeletingProject] = useState(false)
   const [memberToAdd, setMemberToAdd] = useState('')
   const [roleToAssign, setRoleToAssign] = useState('contributor')
   const [error, setError] = useState('')
@@ -372,6 +380,7 @@ export default function LaunchWorkspacePage() {
     || projectMembers.some(member => member.uid === user?.uid && member.role === 'project_manager')
   const canContribute = canManageTeam
     || projectMembers.some(member => member.uid === user?.uid && member.role === 'contributor')
+  const canDeleteProject = ['owner', 'admin'].includes(selectedOrganisation?.role)
   const unassignedMembers = orgMembers.filter(member =>
     !projectMembers.some(projectMember => projectMember.id === member.id)
   )
@@ -736,6 +745,59 @@ export default function LaunchWorkspacePage() {
     }
   }
 
+
+  const deleteProject = async () => {
+    if (!canDeleteProject || !project || deletingProject) return
+    const confirmed = window.confirm('Permanently delete "' + project.name + '" and all its tasks, comments, files, images, milestones and activity? This cannot be undone.')
+    if (!confirmed) return
+    setDeletingProject(true)
+    setError('')
+    setNotice('')
+    try {
+      const base = ['organisations', selectedOrgId, 'projects', projectId]
+      const [taskSnapshot, milestoneSnapshot, fileSnapshot, activitySnapshot, memberSnapshot] = await Promise.all([
+        getDocs(collection(db, ...base, 'tasks')),
+        getDocs(collection(db, ...base, 'milestones')),
+        getDocs(collection(db, ...base, 'files')),
+        getDocs(collection(db, ...base, 'activity')),
+        getDocs(collection(db, ...base, 'members'))
+      ])
+      const tasks = taskSnapshot.docs
+      const commentsByTask = await Promise.all(tasks.map(task => getDocs(collection(db, ...base, 'tasks', task.id, 'comments'))))
+      // Keep project membership records until Storage cleanup finishes so Storage rules can authorise deletion.
+      const storedObjects = await collectStorageFiles(storageRef(getStorage(), 'organisations/' + selectedOrgId + '/projects/' + projectId))
+      for (let index = 0; index < storedObjects.length; index += 12) {
+        await Promise.all(storedObjects.slice(index, index + 12).map(objectRef => deleteObject(objectRef).catch(removeError => {
+          if (removeError?.code !== 'storage/object-not-found') throw removeError
+        })))
+      }
+      const refs = []
+      commentsByTask.forEach(snapshot => snapshot.docs.forEach(item => refs.push(item.ref)))
+      tasks.forEach(item => refs.push(item.ref))
+      milestoneSnapshot.docs.forEach(item => refs.push(item.ref))
+      fileSnapshot.docs.forEach(item => refs.push(item.ref))
+      activitySnapshot.docs.forEach(item => refs.push(item.ref))
+      memberSnapshot.docs.forEach(item => {
+        refs.push(item.ref)
+        refs.push(doc(db, 'organisations', selectedOrgId, 'members', item.id, 'projects', projectId))
+      })
+      refs.push(doc(db, ...base))
+      for (let index = 0; index < refs.length; index += 400) {
+        const batch = writeBatch(db)
+        refs.slice(index, index + 400).forEach(reference => batch.delete(reference))
+        await batch.commit()
+      }
+      navigate('/app/launches', { replace: true })
+    } catch (deleteError) {
+      console.error('PLTK launch deletion failed:', deleteError)
+      setError(deleteError?.code === 'storage/unauthorized' || deleteError?.code === 'permission-denied'
+        ? 'Deletion stopped because Firebase denied access to one or more project records or files. Check the deployed Firestore and Storage rules before retrying.'
+        : 'The launch could not be fully deleted. Some files or records may already have been removed. Check the Firebase connection and retry after reviewing the project data.')
+    } finally {
+      setDeletingProject(false)
+    }
+  }
+
   const saveReadiness = async checks => {
     if (!canManageTeam || !project) return
     setReadinessBusy(true)
@@ -851,7 +913,7 @@ export default function LaunchWorkspacePage() {
       ) : activeTab === 'activity' ? (
         <ProjectActivityPanel items={activity}/>
       ) : activeTab === 'settings' ? (
-        <ProjectSettingsPanel project={project} canManage={canManageTeam} onSave={updateProjectSettings} busy={busy}/>
+        <ProjectSettingsPanel project={project} canManage={canManageTeam} canDelete={canDeleteProject} onSave={updateProjectSettings} busy={busy} deleting={deletingProject} onDelete={deleteProject}/>
       ) : activeTab === 'closeout' ? (
         <LaunchCloseoutPanel project={project} orgId={selectedOrgId} projectId={projectId} user={user} canManage={canManageTeam}/>
       ) : (
