@@ -719,3 +719,5 @@
   .v2-marketing-actions .v2-button { padding-inline: 10px; font-size: 10px; }
   .v2-auth-topline { margin-bottom: 34px; }
 }
+
+.v2-auth-help { margin-top: 9px; color: var(--v2-subtle); font-size: 10px; text-align: center; }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -23,8 +23,20 @@ function LoadingScreen() {
 
 function VerifyEmailScreen() {
   const { user, sendVerification, refreshUser, signOut } = useAuth()
+  const location = useLocation()
+  const verificationWasSent = location.state?.signupVerificationSent
+  const verificationErrorCode = location.state?.signupVerificationErrorCode
+  const profileWasUpdated = location.state?.signupProfileUpdated
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(() => {
+    if (verificationWasSent === false) {
+      return 'Your account was created, but the verification email could not be sent. Use the resend button below.'
+    }
+    if (profileWasUpdated === false) {
+      return 'Your account was created. We could not save your display name, but you can continue verifying your email.'
+    }
+    return ''
+  })
   const [error, setError] = useState('')
 
   const resend = async () => {
@@ -34,8 +46,14 @@ function VerifyEmailScreen() {
     try {
       await sendVerification()
       setMessage('A new verification email has been sent.')
-    } catch {
-      setError('We could not send the email. Please try again shortly.')
+    } catch (sendError) {
+      const messages = {
+        'auth/too-many-requests': 'Firebase has temporarily limited verification emails. Try again later.',
+        'auth/unauthorized-domain': 'This website is not authorised in Firebase. Add projectluncher.web.app to Authentication → Settings → Authorized domains.',
+        'auth/network-request-failed': 'Could not reach Firebase. Check your connection and retry.'
+      }
+      const code = sendError?.code || 'unknown'
+      setError(messages[code] || `We could not send the email. Firebase reference: ${code}.`)
     } finally {
       setBusy(false)
     }
@@ -60,7 +78,10 @@ function VerifyEmailScreen() {
         <span className="v2-verify-icon"><Icon name="shield" size={24}/></span>
         <span className="v2-eyebrow">ONE MORE STEP</span>
         <h1>Verify your email</h1>
-        <p>We sent a verification link to <strong>{user?.email}</strong>. Verify your address, then return here to continue.</p>
+        <p>{verificationWasSent === false
+          ? <>Your account is ready, but we could not send the verification email to <strong>{user?.email}</strong>. You can request another one below.</>
+          : <>We sent a verification link to <strong>{user?.email}</strong>. Verify your address, then return here to continue.</>}</p>
+        {verificationErrorCode && <p className="v2-auth-help">Firebase reference: {verificationErrorCode}</p>}
         {message && <div className="v2-alert v2-alert-success">{message}</div>}
         {error && <div className="v2-alert v2-alert-error">{error}</div>}
         <button className="v2-button v2-button-primary v2-button-full" onClick={check} disabled={busy}>I've verified my email</button>

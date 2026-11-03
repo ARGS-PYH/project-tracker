@@ -37,12 +37,43 @@ export function AuthProvider({ children }) {
     loading,
     signIn: (email, password) => signInWithEmailAndPassword(auth, email.trim(), password),
     signUp: async ({ name, email, password }) => {
+      // Once Firebase creates the account, later profile/verification failures
+      // must not be reported as though account creation itself failed.
       const credential = await createUserWithEmailAndPassword(auth, email.trim(), password)
-      if (name.trim()) await updateProfile(credential.user, { displayName: name.trim() })
-      await sendEmailVerification(credential.user)
-      await reload(credential.user)
-      setUser(auth.currentUser)
-      return auth.currentUser
+      const createdUser = credential.user
+      let profileUpdated = !name.trim()
+      let verificationErrorCode = null
+
+      if (name.trim()) {
+        try {
+          await updateProfile(createdUser, { displayName: name.trim() })
+          profileUpdated = true
+        } catch (error) {
+          console.warn('PLTK profile update after signup failed:', error?.code || error)
+        }
+      }
+
+      try {
+        await sendEmailVerification(createdUser)
+      } catch (error) {
+        verificationErrorCode = error?.code || 'unknown'
+        console.warn('PLTK verification email after signup failed:', verificationErrorCode)
+      }
+
+      try {
+        await reload(createdUser)
+      } catch (error) {
+        console.warn('PLTK account refresh after signup failed:', error?.code || error)
+      }
+
+      const signedInUser = auth.currentUser || createdUser
+      setUser(signedInUser)
+      return {
+        user: signedInUser,
+        verificationSent: !verificationErrorCode,
+        verificationErrorCode,
+        profileUpdated
+      }
     },
     signOut: () => signOut(auth),
     sendVerification: () => auth.currentUser ? sendEmailVerification(auth.currentUser) : Promise.reject(new Error('No signed-in user.')),

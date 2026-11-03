@@ -40,21 +40,35 @@ export default function AuthPage({ mode = 'login' }) {
     setBusy(true)
     try {
       if (isSignup) {
-        await signUp({ name, email, password })
-        navigate(nextPath || '/app', { replace: true })
+        const result = await signUp({ name, email, password })
+        const destination = nextPath === '/app' ? '/app/overview' : nextPath
+        navigate(destination, {
+          replace: true,
+          state: {
+            signupVerificationSent: result.verificationSent,
+            signupVerificationErrorCode: result.verificationErrorCode,
+            signupProfileUpdated: result.profileUpdated
+          }
+        })
       } else {
         await signIn(email, password)
         navigate(nextPath, { replace: true })
       }
     } catch (err) {
       const messages = {
-        'auth/email-already-in-use': 'An account already exists with this email address.',
+        'auth/email-already-in-use': 'This email already has a PLTK account. Sign in instead, or use Forgot password.',
         'auth/invalid-credential': 'The email address or password is incorrect.',
         'auth/invalid-email': 'Enter a valid email address.',
         'auth/weak-password': 'Choose a stronger password with at least 8 characters.',
-        'auth/too-many-requests': 'Too many attempts. Please try again later.'
+        'auth/too-many-requests': 'Too many attempts. Please wait a little before trying again.',
+        'auth/operation-not-allowed': 'Email/password registration is disabled in Firebase. Enable Email/Password under Authentication → Sign-in method.',
+        'auth/unauthorized-domain': `This website domain (${window.location.hostname}) is not authorised in Firebase Authentication. Add it under Authentication → Settings → Authorized domains.`,
+        'auth/invalid-api-key': 'The Firebase web API key is invalid. Check the web app configuration in Firebase project settings.',
+        'auth/network-request-failed': 'Firebase could not be reached. Check your internet connection and try again.',
+        'auth/app-not-authorized': 'This web app is not authorised to use Firebase Authentication. Check the Firebase API key and project configuration.'
       }
-      setError(messages[err.code] || 'We could not complete that request. Please try again.')
+      const errorCode = err?.code || 'unknown'
+      setError(messages[errorCode] || `We could not complete that request. Firebase error: ${errorCode}.`)
     } finally {
       setBusy(false)
     }
