@@ -598,7 +598,7 @@ export function DeadlineExtensionPanel({ project, orgId, projectId, user, canMan
 }
 
 function archiveSafeName(value, fallback = 'file') {
-  const name = String(value || fallback).replace(/[\\\\/:*?"<>|]+/g, '_').replace(/\\s+/g, ' ').trim()
+  const name = String(value || fallback).replace(/[^a-zA-Z0-9._ -]/g, '_').replace(/\s+/g, ' ').trim()
   return name.slice(0, 120) || fallback
 }
 

@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
 import { useProjectData } from './AdvancedWorkspacePages.jsx'
-import { LaunchCountdown } from './LaunchExtras.jsx'
 
 function PageHeader({ eyebrow, title, description, action }) {
   return (
@@ -61,7 +60,6 @@ function LaunchCard({ project, progress = Number(project.progress || 0) }) {
         <div className="v2-launch-progress-label"><span>Task progress</span><strong>{Number(progress)}%</strong></div>
         <div className="v2-progress-track"><span style={{ width: Math.max(0, Math.min(100, Number(progress))) + '%' }}/></div>
       </div>
-      <LaunchCountdown targetDate={project.targetLaunchDate} compact />
       <div className="v2-launch-card-foot">
         <span><Icon name="calendar" size={14}/>{dateLabel(project.targetLaunchDate)}</span>
         <span><Icon name="user" size={14}/>{project.ownerName || 'Project owner'}</span>
