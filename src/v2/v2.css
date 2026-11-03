@@ -688,3 +688,34 @@
 .v2-dependency-edit-row > span { display: flex; flex-direction: column; gap: 3px; }
 .v2-dependency-edit-row strong { color: var(--v2-text); font-size: 11px; }
 .v2-dependency-edit-row small { color: var(--v2-muted); font-size: 9px; text-transform: capitalize; }
+
+
+/* PLTK brand identity, theme controls and parent-company footer */
+.v2-brand-lockup { gap: 10px; }
+.v2-brand-icon { display: block; flex: 0 0 auto; width: 42px; height: 42px; object-fit: cover; border-radius: 11px; box-shadow: 0 4px 13px rgba(0, 40, 24, .14); transition: transform .15s ease; }
+.v2-brand-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; line-height: 1; }
+.v2-brand-copy strong { color: var(--v2-text); font-size: 19px; font-weight: 850; letter-spacing: -.045em; }
+.v2-brand-copy small { color: var(--v2-muted); font-size: 7px; font-weight: 800; letter-spacing: .13em; white-space: nowrap; }
+.v2-brand:hover .v2-brand-icon { transform: translateY(-1px); }
+.v2-marketing-header .v2-brand-icon { width: 45px; height: 45px; }
+.v2-marketing-header .v2-brand-copy strong { font-size: 20px; }
+.v2-marketing-footer .v2-brand-icon { width: 34px; height: 34px; border-radius: 9px; }
+.v2-marketing-footer .v2-brand-copy strong { font-size: 16px; }
+.v2-marketing-footer .v2-brand-copy small { font-size: 6px; }
+.v2-preview-logo { overflow: hidden; padding: 0; }
+.v2-preview-logo img { display: block; width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.v2-marketing-actions { gap: 15px; }
+.v2-auth-topline, .v2-invite-head, .v2-onboarding-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.v2-auth-topline { margin-bottom: 44px; }
+.v2-auth-brand { margin-bottom: 0; }
+.v2-invite-head { width: 100%; }
+.v2-onboarding-head { margin-bottom: 34px; }
+.v2-onboarding-head .v2-brand-icon { width: 40px; height: 40px; }
+@media (max-width: 620px) {
+  .v2-marketing-header .v2-brand-icon { width: 38px; height: 38px; }
+  .v2-marketing-header .v2-brand-copy strong { font-size: 18px; }
+  .v2-marketing-header .v2-brand-copy small { font-size: 6px; }
+  .v2-marketing-actions { gap: 9px; }
+  .v2-marketing-actions .v2-button { padding-inline: 10px; font-size: 10px; }
+  .v2-auth-topline { margin-bottom: 34px; }
+}

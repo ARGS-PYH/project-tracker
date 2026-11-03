@@ -4,6 +4,8 @@ import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
 import Icon from './icons.jsx'
+import Brand from './Brand.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 
 const primaryNav = [
   { to: '/app/overview', label: 'Overview', icon: 'grid' },
@@ -54,6 +56,7 @@ function VerifyEmailScreen() {
   return (
     <div className="v2-auth-page">
       <section className="v2-auth-card v2-verify-card">
+        <div className="v2-onboarding-head"><Brand to="/" /><ThemeToggle /></div>
         <span className="v2-verify-icon"><Icon name="shield" size={24}/></span>
         <span className="v2-eyebrow">ONE MORE STEP</span>
         <h1>Verify your email</h1>
@@ -91,6 +94,7 @@ function CreateOrganisationScreen() {
   return (
     <div className="v2-onboarding">
       <div className="v2-onboarding-card">
+        <div className="v2-onboarding-head"><Brand to="/" /><ThemeToggle /></div>
         <span className="v2-eyebrow">YOUR WORKSPACE STARTS HERE</span>
         <h1>Create your organisation</h1>
         <p>Set up an organisation to bring projects, teams and launch activity together. You can invite colleagues after setup.</p>
@@ -119,9 +123,7 @@ function Sidebar({ onClose }) {
   return (
     <aside className="v2-sidebar">
       <div className="v2-sidebar-head">
-        <NavLink to="/app/overview" className="v2-brand" onClick={onClose}>
-          <span className="v2-brand-mark">P</span><span>PLTK</span>
-        </NavLink>
+        <Brand to="/app/overview" onClick={onClose} />
         <button className="v2-icon-button v2-mobile-close" onClick={onClose} aria-label="Close menu"><Icon name="x"/></button>
       </div>
 
@@ -189,7 +191,7 @@ export default function WorkspaceShell() {
         </header>
         {error && <div className="v2-global-alert"><span>{error}</span><button onClick={clearError} aria-label="Dismiss message"><Icon name="x" size={16}/></button></div>}
         <main className="v2-content"><Outlet context={{ projects, projectsLoading, selectedOrganisation }}/></main>
-        <footer className="v2-footer"><span>PLTK · Product Launch Tracker</span><span>Built for focused product execution</span></footer>
+        <footer className="v2-footer"><span>PLTK · Product Launch Tracker</span><span>© 2026 Peregrine Solution. All rights reserved.</span></footer>
       </div>
     </div>
   )

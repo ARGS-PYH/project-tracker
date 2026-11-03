@@ -4,6 +4,8 @@ import { doc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 import Icon from './icons.jsx'
+import Brand from './Brand.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 
 export default function InviteAcceptancePage() {
   const { orgId, inviteId } = useParams()
@@ -120,7 +122,7 @@ export default function InviteAcceptancePage() {
   return (
     <main className="v2-invite-page">
       <section className="v2-invite-card">
-        <Link to="/" className="v2-brand"><span className="v2-brand-mark">P</span><span>PLTK</span></Link>
+        <div className="v2-invite-head"><Brand to="/" /><ThemeToggle /></div>
         <span className="v2-invite-icon"><Icon name="users" size={23}/></span>
         <span className="v2-eyebrow">WORKSPACE INVITATION</span>
         <h1>Join your team on PLTK</h1>

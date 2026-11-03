@@ -1,6 +1,8 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import Icon from './icons.jsx'
+import Brand from './Brand.jsx'
+import ThemeToggle from '../components/ThemeToggle.jsx'
 
 const features = [
   { icon: 'rocket', title: 'Launch workspaces', text: 'Bring launch plans, owners, timelines and deliverables into one shared space.' },
@@ -12,12 +14,13 @@ export default function PublicHomePage() {
   return (
     <div className="v2-marketing">
       <header className="v2-marketing-header">
-        <Link to="/" className="v2-brand"><span className="v2-brand-mark">P</span><span>PLTK</span></Link>
+        <Brand to="/" />
         <nav className="v2-marketing-nav">
           <a href="#how-it-works">How it works</a>
           <a href="#features">Features</a>
         </nav>
         <div className="v2-marketing-actions">
+          <ThemeToggle style={{ padding: "7px 11px", fontSize: 11 }} />
           <Link to="/app/login" className="v2-marketing-signin">Sign in</Link>
           <Link to="/app/signup" className="v2-button v2-button-primary">Get started <Icon name="arrow" size={16}/></Link>
         </div>
@@ -41,7 +44,7 @@ export default function PublicHomePage() {
 
           <div className="v2-marketing-preview" aria-label="Illustrative PLTK dashboard preview">
             <div className="v2-preview-window">
-              <div className="v2-preview-top"><span className="v2-preview-logo">P</span><strong>PLTK</strong><span className="v2-preview-company">Northstar Labs <Icon name="chevronDown" size={12}/></span><span className="v2-preview-avatar">J</span></div>
+              <div className="v2-preview-top"><span className="v2-preview-logo"><img src="/pltk-mark.svg" alt="" /></span><strong>PLTK</strong><span className="v2-preview-company">Northstar Labs <Icon name="chevronDown" size={12}/></span><span className="v2-preview-avatar">J</span></div>
               <div className="v2-preview-body">
                 <div className="v2-preview-sidebar">
                   <span className="selected"><Icon name="grid" size={13}/> Overview</span>
@@ -87,7 +90,7 @@ export default function PublicHomePage() {
           <Link to="/app/signup" className="v2-button v2-button-primary">Get started with PLTK <Icon name="arrow" size={17}/></Link>
         </section>
       </main>
-      <footer className="v2-marketing-footer"><Link to="/" className="v2-brand"><span className="v2-brand-mark">P</span><span>PLTK</span></Link><span>Product Launch Tracker · Plan clearly. Launch confidently.</span><span>© {new Date().getFullYear()} PLTK</span></footer>
+      <footer className="v2-marketing-footer"><Brand to="/" /><span>Product Launch Tracker · Plan clearly. Launch confidently.</span><span>© 2026 Peregrine Solution. All rights reserved.</span></footer>
     </div>
   )
 }

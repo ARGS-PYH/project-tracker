@@ -2,6 +2,8 @@ import React, { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from './AuthProvider.jsx'
 import Icon from '../icons.jsx'
+import Brand from '../Brand.jsx'
+import ThemeToggle from '../../components/ThemeToggle.jsx'
 
 export default function AuthPage({ mode = 'login' }) {
   const isSignup = mode === 'signup'
@@ -79,10 +81,7 @@ export default function AuthPage({ mode = 'login' }) {
   return (
     <main className="v2-auth-page">
       <section className="v2-auth-card">
-        <Link to="/app/login" className="v2-brand v2-auth-brand">
-          <span className="v2-brand-mark">P</span>
-          <span>PLTK</span>
-        </Link>
+        <div className="v2-auth-topline"><Brand to="/app/login" className="v2-auth-brand" /><ThemeToggle /></div>
         <div className="v2-auth-heading">
           <span className="v2-eyebrow">{isSignup ? 'GET STARTED' : 'WELCOME BACK'}</span>
           <h1>{isSignup ? 'Create your account' : 'Sign in to PLTK'}</h1>
