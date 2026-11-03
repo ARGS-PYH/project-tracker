@@ -15,7 +15,7 @@ import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
-import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel, ProjectSettingsPanel } from './LaunchExtras.jsx'
+import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel, ProjectSettingsPanel, LaunchCountdown, DeadlineExtensionPanel, LaunchCloseoutPanel } from './LaunchExtras.jsx'
 
 const taskStatuses = [
   { value: 'todo', label: 'To do' },
@@ -765,9 +765,10 @@ export default function LaunchWorkspacePage() {
     <div className="v2-page">
       <Link className="v2-back-link" to="/app/launches"><Icon name="chevron" size={15}/> Back to launches</Link>
       <div className="v2-launch-title-row">
-        <div><span className="v2-eyebrow">LAUNCH WORKSPACE</span><h1>{project.name}</h1><p>{project.description || 'Build the delivery plan for this product launch.'}</p></div>
+        <div><span className="v2-eyebrow">LAUNCH WORKSPACE</span><h1>{project.name}</h1><p>{project.description || 'Build the delivery plan for this product launch.'}</p><LaunchCountdown targetDate={project.targetLaunchDate}/></div>
         {canManageTeam ? <select className="v2-launch-status-select" aria-label="Launch lifecycle status" value={project.status || 'planning'} onChange={event => changeLaunchStatus(event.target.value)}>{['planning','in_progress','testing','ready','launched','paused'].map(value => <option key={value} value={value}>{value.replace('_',' ')}</option>)}</select> : <span className={'v2-status-pill status-' + (project.status || 'planning')}>{project.status || 'planning'}</span>}
       </div>
+      <DeadlineExtensionPanel project={project} orgId={selectedOrgId} projectId={projectId} user={user} canManage={canManageTeam}/>
       {error && <div className="v2-alert v2-alert-error" role="alert">{error}</div>}
       {notice && <div className="v2-alert v2-alert-success" role="status">{notice}</div>}
       <div className="v2-metrics-grid v2-detail-metrics">
@@ -784,6 +785,7 @@ export default function LaunchWorkspacePage() {
         <button role="tab" aria-selected={activeTab === 'activity'} className={activeTab === 'activity' ? 'active' : ''} onClick={() => setActiveTab('activity')}><Icon name="clock" size={15}/> Activity <span>{activity.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'team'} className={activeTab === 'team' ? 'active' : ''} onClick={() => setActiveTab('team')}><Icon name="users" size={15}/> Team <span>{projectMembers.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'settings'} className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}><Icon name="settings" size={15}/> Settings</button>
+        <button role="tab" aria-selected={activeTab === 'closeout'} className={activeTab === 'closeout' ? 'active' : ''} onClick={() => setActiveTab('closeout')}><Icon name="archive" size={15}/> Close-out</button>
       </div>
 
       {activeTab === 'tasks' ? (
@@ -850,6 +852,8 @@ export default function LaunchWorkspacePage() {
         <ProjectActivityPanel items={activity}/>
       ) : activeTab === 'settings' ? (
         <ProjectSettingsPanel project={project} canManage={canManageTeam} onSave={updateProjectSettings} busy={busy}/>
+      ) : activeTab === 'closeout' ? (
+        <LaunchCloseoutPanel project={project} orgId={selectedOrgId} projectId={projectId} user={user} canManage={canManageTeam}/>
       ) : (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch team</h2><p>Control which organisation members can view or contribute to this launch.</p></div></div>
