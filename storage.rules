@@ -36,6 +36,13 @@ service firebase.storage {
           && firestore.get(/databases/(default)/documents/organisations/$(orgId)/projects/$(projectId)/members/$(request.auth.uid)).data.role in ['project_manager', 'contributor']);
     }
 
+    function commentAuthor(orgId, projectId, taskId, commentId) {
+      let commentPath = /databases/(default)/documents/organisations/$(orgId)/projects/$(projectId)/tasks/$(taskId)/comments/$(commentId);
+      return signedIn()
+        && firestore.exists(commentPath)
+        && firestore.get(commentPath).data.authorUid == request.auth.uid;
+    }
+
     function allowedFile() {
       return request.resource != null
         && request.resource.size <= 10 * 1024 * 1024
@@ -49,6 +56,14 @@ service firebase.storage {
       allow create: if canUpload(orgId, projectId) && allowedFile();
       allow update: if canUpload(orgId, projectId) && allowedFile();
       allow delete: if projectManager(orgId, projectId);
+    }
+
+    // Comment authors may remove images attached to their own comments.
+    // Project managers and organisation admins can remove any project comment image.
+    // The generic project path above continues to control uploads and reads.
+    match /organisations/{orgId}/projects/{projectId}/comment-attachments/{taskId}/{commentId}/{fileName} {
+      allow delete: if projectManager(orgId, projectId)
+        || commentAuthor(orgId, projectId, taskId, commentId);
     }
 
     // No other storage paths are accessible from client applications.

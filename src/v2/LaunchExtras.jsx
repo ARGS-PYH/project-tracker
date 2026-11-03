@@ -5,7 +5,8 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  updateDoc
 } from 'firebase/firestore'
 import {
   deleteObject,
@@ -166,6 +167,8 @@ export function ReadinessPanel({ project, canManage, onSave, busy }) {
 export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, canManage, onActivity }) {
   const [comments, setComments] = useState([])
   const [draft, setDraft] = useState('')
+  const [selectedImages, setSelectedImages] = useState([])
+  const [imagePreviews, setImagePreviews] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -192,23 +195,119 @@ export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, ca
     return unsubscribe
   }, [orgId, projectId, task?.id])
 
+  useEffect(() => {
+    const previews = selectedImages.map(file => ({ file, url: URL.createObjectURL(file) }))
+    setImagePreviews(previews)
+    return () => previews.forEach(item => URL.revokeObjectURL(item.url))
+  }, [selectedImages])
+
+  const chooseImages = event => {
+    const incoming = Array.from(event.target.files || [])
+    event.target.value = ''
+    if (!incoming.length) return
+
+    const imageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+    const accepted = []
+    for (const file of incoming) {
+      if (!imageTypes.has(file.type)) {
+        setError('Use JPG, PNG, WEBP or GIF images.')
+        continue
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError(file.name + ' is larger than 5 MB. Choose a smaller image.')
+        continue
+      }
+      accepted.push(file)
+    }
+
+    setSelectedImages(current => {
+      const remaining = Math.max(0, 4 - current.length)
+      if (accepted.length > remaining) {
+        setError('You can attach up to 4 images to one comment.')
+      }
+      return [...current, ...accepted.slice(0, remaining)]
+    })
+  }
+
+  const removeSelectedImage = index => {
+    setSelectedImages(current => current.filter((_, itemIndex) => itemIndex !== index))
+  }
+
   const submit = async event => {
     event.preventDefault()
     const text = draft.trim()
-    if (!text || !canComment || !user?.uid) return
+    if ((!text && !selectedImages.length) || !canComment || !user?.uid || busy) return
+
     setBusy(true)
     setError('')
+    let commentRef = null
+    const uploadedAttachments = []
+    let uploadFailed = false
+
     try {
-      await addDoc(collection(db, 'organisations', orgId, 'projects', projectId, 'tasks', task.id, 'comments'), {
+      commentRef = await addDoc(collection(db, 'organisations', orgId, 'projects', projectId, 'tasks', task.id, 'comments'), {
         text,
+        attachments: [],
         authorUid: user.uid,
         authorName: user.displayName || user.email || 'Team member',
         createdAt: serverTimestamp()
       })
+
+      for (let index = 0; index < selectedImages.length; index += 1) {
+        const file = selectedImages[index]
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100) || 'image'
+        const path = 'organisations/' + orgId + '/projects/' + projectId
+          + '/comment-attachments/' + task.id + '/' + commentRef.id
+          + '/' + Date.now() + '-' + index + '-' + safeName
+
+        try {
+          const uploaded = await uploadBytes(storageRef(getStorage(), path), file, { contentType: file.type })
+          const downloadURL = await getDownloadURL(uploaded.ref)
+          uploadedAttachments.push({
+            name: file.name,
+            storagePath: path,
+            downloadURL,
+            contentType: file.type,
+            size: file.size
+          })
+        } catch (uploadError) {
+          console.warn('PLTK comment image upload failed:', uploadError?.code || uploadError)
+          uploadFailed = true
+          break
+        }
+      }
+
+      if (uploadedAttachments.length) {
+        await updateDoc(commentRef, { attachments: uploadedAttachments })
+      } else if (!text) {
+        await deleteDoc(commentRef)
+      }
+
       setDraft('')
-      onActivity?.('comment_added', 'Comment added to "' + task.title + '".', task.id)
-    } catch {
-      setError('Your comment could not be posted. Check that you have contributor access.')
+      setSelectedImages([])
+      onActivity?.(
+        'comment_added',
+        uploadedAttachments.length
+          ? 'Comment with ' + uploadedAttachments.length + ' image(s) added to "' + task.title + '".'
+          : 'Comment added to "' + task.title + '".',
+        task.id
+      )
+
+      if (uploadFailed) {
+        setError(
+          uploadedAttachments.length
+            ? 'Your comment was posted, but one or more images could not be uploaded. Check Firebase Storage and its rules.'
+            : 'Your comment text was posted, but the image could not be uploaded. Check Firebase Storage and its rules.'
+        )
+      }
+    } catch (submitError) {
+      console.warn('PLTK task comment submission failed:', submitError?.code || submitError)
+      if (uploadedAttachments.length) {
+        await Promise.allSettled(uploadedAttachments.map(item =>
+          deleteObject(storageRef(getStorage(), item.storagePath))
+        ))
+      }
+      setError('Your comment could not be completed. Check your project access and Firebase Storage configuration.')
     } finally {
       setBusy(false)
     }
@@ -217,18 +316,80 @@ export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, ca
   const remove = async comment => {
     setError('')
     try {
+      const attachments = Array.isArray(comment.attachments) ? comment.attachments : []
+      await Promise.all(attachments.filter(item => item.storagePath).map(item =>
+        deleteObject(storageRef(getStorage(), item.storagePath)).catch(removeError => {
+          if (removeError?.code !== 'storage/object-not-found') throw removeError
+        })
+      ))
       await deleteDoc(doc(db, 'organisations', orgId, 'projects', projectId, 'tasks', task.id, 'comments', comment.id))
-    } catch {
-      setError('This comment could not be deleted.')
+    } catch (removeError) {
+      console.warn('PLTK comment deletion failed:', removeError?.code || removeError)
+      setError('This comment or one of its images could not be deleted. Check your project access and Storage rules.')
     }
   }
 
   return (
     <section className="v2-panel v2-comments-panel">
-      <div className="v2-panel-heading"><div><h2>Discussion · {task.title}</h2><p>Keep decisions and context attached to the work.</p></div><span className="v2-result-count">{comments.length} comments</span></div>
+      <div className="v2-panel-heading"><div><h2>Discussion · {task.title}</h2><p>Keep decisions, complaints and supporting screenshots attached to the work.</p></div><span className="v2-result-count">{comments.length} comments</span></div>
       {error && <div className="v2-alert v2-alert-error">{error}</div>}
-      {loading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading discussion…</div> : comments.length ? <div className="v2-comments-list">{comments.map(comment => <article className="v2-comment" key={comment.id}><span className="v2-avatar">{(comment.authorName || 'U').slice(0,1).toUpperCase()}</span><div className="v2-comment-body"><div><strong>{comment.authorName || 'Team member'}</strong><small>{formatDate(comment.createdAt)}</small></div><p>{comment.text}</p></div>{(comment.authorUid === user?.uid || canManage) && <button className="v2-text-button" onClick={() => remove(comment)}>Delete</button>}</article>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="mail" size={17}/></span><div><strong>No discussion yet</strong><p>Post a question, decision or update for the team.</p></div></div>}
-      {canComment ? <form className="v2-comment-form" onSubmit={submit}><textarea value={draft} onChange={event => setDraft(event.target.value)} rows={2} maxLength={2000} placeholder="Write a comment…"/><button className="v2-button v2-button-primary" disabled={busy || !draft.trim()}>{busy ? 'Posting…' : 'Post comment'} <Icon name="arrow" size={15}/></button></form> : <p className="v2-invite-footnote">You have read-only access to this task.</p>}
+      {loading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading discussion…</div> : comments.length ? (
+        <div className="v2-comments-list">
+          {comments.map(comment => (
+            <article className="v2-comment" key={comment.id}>
+              <span className="v2-avatar">{(comment.authorName || 'U').slice(0,1).toUpperCase()}</span>
+              <div className="v2-comment-body">
+                <div><strong>{comment.authorName || 'Team member'}</strong><small>{formatDate(comment.createdAt)}</small></div>
+                {comment.text && <p>{comment.text}</p>}
+                {Array.isArray(comment.attachments) && comment.attachments.length > 0 && (
+                  <div className="v2-comment-attachments">
+                    {comment.attachments.map((attachment, index) => (
+                      <a
+                        className="v2-comment-attachment"
+                        href={attachment.downloadURL}
+                        target="_blank"
+                        rel="noreferrer"
+                        key={attachment.storagePath || attachment.downloadURL || index}
+                        title={attachment.name || 'Open attachment'}
+                      >
+                        <img src={attachment.downloadURL} alt={attachment.name || 'Comment attachment'} loading="lazy"/>
+                        <span>{attachment.name || 'Image attachment'}</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {(comment.authorUid === user?.uid || canManage) && <button type="button" className="v2-text-button" onClick={() => remove(comment)}>Delete</button>}
+            </article>
+          ))}
+        </div>
+      ) : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="mail" size={17}/></span><div><strong>No discussion yet</strong><p>Post a question, decision or update for the team. You can include screenshots as evidence.</p></div></div>}
+      {canComment ? (
+        <form className="v2-comment-composer" onSubmit={submit}>
+          <textarea value={draft} onChange={event => setDraft(event.target.value)} rows={3} maxLength={2000} placeholder="Describe the issue, complaint or update…"/>
+          {imagePreviews.length > 0 && (
+            <div className="v2-comment-preview-list">
+              {imagePreviews.map((item, index) => (
+                <div className="v2-comment-preview" key={item.file.name + ':' + item.file.lastModified + ':' + index}>
+                  <img src={item.url} alt={'Selected attachment ' + (index + 1)}/>
+                  <button type="button" onClick={() => removeSelectedImage(index)} aria-label={'Remove ' + item.file.name} disabled={busy}>×</button>
+                  <span>{item.file.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="v2-comment-composer-actions">
+            <label className="v2-button v2-button-secondary v2-comment-attach-button">
+              <Icon name="paperclip" size={15}/> Add images
+              <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={chooseImages} disabled={busy || selectedImages.length >= 4}/>
+            </label>
+            <span className="v2-comment-attachment-hint">JPG, PNG, WEBP or GIF · Max 5 MB each · Up to 4 images</span>
+            <button className="v2-button v2-button-primary" disabled={busy || (!draft.trim() && !selectedImages.length)}>
+              {busy ? 'Posting…' : 'Post comment'} <Icon name="arrow" size={15}/>
+            </button>
+          </div>
+        </form>
+      ) : <p className="v2-invite-footnote">You have read-only access to this task.</p>}
     </section>
   )
 }

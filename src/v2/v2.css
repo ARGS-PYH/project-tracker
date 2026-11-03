@@ -721,3 +721,25 @@
 }
 
 .v2-auth-help { margin-top: 9px; color: var(--v2-subtle); font-size: 10px; text-align: center; }
+
+
+/* Image attachments on task discussions */
+.v2-comment-composer { display: flex; flex-direction: column; gap: 11px; margin-top: 16px; }
+.v2-comment-composer textarea { width: 100%; min-height: 76px; resize: vertical; padding: 11px 12px; color: var(--v2-text); background: var(--v2-surface-soft); border: 1px solid var(--v2-border); border-radius: 9px; font: inherit; font-size: 12px; line-height: 1.5; }
+.v2-comment-composer textarea:focus { outline: none; border-color: var(--v2-brand); box-shadow: 0 0 0 3px var(--v2-brand-soft); }
+.v2-comment-composer-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.v2-comment-composer-actions > button { margin-left: auto; }
+.v2-comment-attach-button { cursor: pointer; }
+.v2-comment-attachment-hint { color: var(--v2-subtle); font-size: 9px; }
+.v2-comment-preview-list, .v2-comment-attachments { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 11px; }
+.v2-comment-preview, .v2-comment-attachment { position: relative; width: 112px; min-width: 0; overflow: hidden; border: 1px solid var(--v2-border); border-radius: 9px; background: var(--v2-surface-soft); }
+.v2-comment-preview img, .v2-comment-attachment img { display: block; width: 100%; height: 82px; object-fit: cover; }
+.v2-comment-preview > span, .v2-comment-attachment > span { display: block; padding: 6px 7px; overflow: hidden; color: var(--v2-muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.v2-comment-attachment { color: inherit; text-decoration: none; transition: border-color .15s ease, transform .15s ease; }
+.v2-comment-attachment:hover { border-color: var(--v2-brand); transform: translateY(-1px); }
+.v2-comment-preview > button { position: absolute; top: 5px; right: 5px; display: grid; place-items: center; width: 23px; height: 23px; padding: 0; border: 1px solid rgba(0,0,0,.16); border-radius: 50%; color: #fff; background: rgba(10,18,14,.78); font-size: 17px; line-height: 1; }
+@media (max-width: 600px) {
+  .v2-comment-composer-actions { align-items: stretch; }
+  .v2-comment-composer-actions > button { margin-left: 0; }
+  .v2-comment-attachment-hint { flex: 1 1 100%; order: 3; }
+}

@@ -15,7 +15,7 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Task subtasks with completion tracking.
 - Task dependencies with circular-chain validation and completion guards.
 - Task deletion with comment cleanup for project managers and organisation administrators.
-- Task comments with author-scoped deletion and project-scoped read access.
+- Task comments with author-scoped deletion, project-scoped read access and up to four image attachments (JPG, PNG, WEBP or GIF; 5 MB each).
 - Project file upload/download with role-based Storage access and size/type limits.
 - Milestone creation, editing, lifecycle status updates and progress derived from linked task records.
 - Evidence-backed launch readiness checklist saved on the launch record.
