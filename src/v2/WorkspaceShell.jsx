@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -212,7 +212,7 @@ export default function WorkspaceShell() {
         </header>
         {error && <div className="v2-global-alert"><span>{error}</span><button onClick={clearError} aria-label="Dismiss message"><Icon name="x" size={16}/></button></div>}
         <main className="v2-content"><Outlet context={{ projects, projectsLoading, selectedOrganisation }}/></main>
-        <footer className="v2-footer"><span>PLTK · Product Launch Tracker</span><span>© 2026 Peregrine Solution. All rights reserved.</span></footer>
+        <footer className="v2-footer"><span>PLTK · Product Launch Tracker</span><span><Link to="/privacy">Privacy policy</Link> · © 2026 Peregrine Solution. All rights reserved.</span></footer>
       </div>
     </div>
   )

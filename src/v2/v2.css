@@ -815,3 +815,14 @@
 .v2-delete-project-warning p { margin-top: 6px; color: var(--v2-muted); font-size: 11px; line-height: 1.6; }
 .v2-button-danger { color: #fff; background: #b83e42; border: 1px solid #a9363a; }
 .v2-button-danger:hover:not(:disabled) { background: #9f3035; }
+
+
+/* PLTK privacy policy */
+.v2-privacy-content { width: min(900px, calc(100% - 36px)); margin: 55px auto 75px; padding: clamp(24px, 5vw, 52px); color: var(--v2-text); background: var(--v2-surface); border: 1px solid var(--v2-border); border-radius: 18px; box-shadow: var(--v2-shadow); }
+.v2-privacy-content h1 { margin: 12px 0 7px; font-size: clamp(32px, 5vw, 48px); letter-spacing: -.055em; }
+.v2-privacy-content h2 { margin: 31px 0 10px; font-size: 17px; letter-spacing: -.025em; }
+.v2-privacy-content p, .v2-privacy-content li { color: var(--v2-muted); font-size: 13px; line-height: 1.75; }
+.v2-privacy-content ul { padding-left: 21px; margin: 11px 0 0; }
+.v2-privacy-content li + li { margin-top: 7px; }
+.v2-privacy-content a { color: var(--v2-brand); font-weight: 700; }
+.v2-privacy-updated { margin-bottom: 27px; font-size: 11px !important; }

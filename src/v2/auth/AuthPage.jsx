@@ -136,7 +136,7 @@ export default function AuthPage({ mode = 'login' }) {
           {' '}
           <Link to={isSignup ? (nextPath ? '/app/login?next=' + encodeURIComponent(nextPath) : '/app/login') : (nextPath ? '/app/signup?next=' + encodeURIComponent(nextPath) : '/app/signup')}>{isSignup ? 'Sign in' : 'Create account'}</Link>
         </p>
-        <p className="v2-auth-legal">By continuing, you agree to use PLTK in accordance with your organisation's policies.</p>
+        <p className="v2-auth-legal">By continuing, you acknowledge our <Link to="/privacy">Privacy Policy</Link> and agree to follow your organisation's policies.</p>
       </section>
       <aside className="v2-auth-aside">
         <div className="v2-auth-aside-inner">

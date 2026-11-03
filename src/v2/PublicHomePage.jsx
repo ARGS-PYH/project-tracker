@@ -90,7 +90,7 @@ export default function PublicHomePage() {
           <Link to="/app/signup" className="v2-button v2-button-primary">Get started with PLTK <Icon name="arrow" size={17}/></Link>
         </section>
       </main>
-      <footer className="v2-marketing-footer"><Brand to="/" /><span>Product Launch Tracker · Plan clearly. Launch confidently.</span><span>© 2026 Peregrine Solution. All rights reserved.</span></footer>
+      <footer className="v2-marketing-footer"><Brand to="/" /><span>Product Launch Tracker · Plan clearly. Launch confidently.</span><span><Link to="/privacy">Privacy policy</Link> · © 2026 Peregrine Solution. All rights reserved.</span></footer>
     </div>
   )
 }
