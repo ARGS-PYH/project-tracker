@@ -16,6 +16,9 @@ This document records what is actually implemented in the `pltk-v2` branch versu
 - Task dependencies with circular-chain validation and completion guards.
 - Task deletion with comment cleanup for project managers and organisation administrators.
 - Task comments with author-scoped deletion, project-scoped read access and up to four image attachments (JPG, PNG, WEBP or GIF; 5 MB each).
+- Visible launch countdowns on the overview cards and launch detail page.
+- Owner/manager deadline-extension prompt when the target date has passed, with an extension history recorded on the launch.
+- Launch close-out ZIP export containing project files, task-comment images, task discussion transcript, milestones and a JSON manifest.
 - Project file upload/download with role-based Storage access and size/type limits.
 - Milestone creation, editing, lifecycle status updates and progress derived from linked task records.
 - Evidence-backed launch readiness checklist saved on the launch record.
@@ -51,3 +54,10 @@ The GitHub Actions workflow `.github/workflows/pltk-v2.yml` runs `npm ci` and `n
 ## Deployment boundary
 
 The v2 branch is not deployed to the live Firebase Hosting site. Keep `main` and the live legacy application unchanged until v2 is fully tested and a migration/rollback plan is approved.
+
+
+## Close-out and account lifecycle
+
+- Marking a launch as launched unlocks a manager-only ZIP close-out export. The export is generated in the browser and does not delete source files.
+- A launch deadline that passes displays an extension prompt for project managers and organisation administrators; the chosen number of days is added to the target date and recorded.
+- PLTK user accounts are not automatically deleted when one launch completes. A Firebase login can own multiple organisations and launches. Permanent account or organisation deletion requires a separate owner-confirmed, server-side cascading deletion and retention process.

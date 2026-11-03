@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   updateDoc
@@ -17,6 +18,8 @@ import {
 } from 'firebase/storage'
 import { db } from '../firebase.js'
 import Icon from './icons.jsx'
+import { createZipBlob } from './createZip.js'
+import { addDaysToDateOnly, getLaunchCountdown } from './launchDates.js'
 
 const readinessTemplate = [
   { id: 'scope', category: 'Product', label: 'Product scope and success metrics approved', complete: false, evidence: '' },
@@ -493,6 +496,269 @@ export function ProjectActivityPanel({ items }) {
     <section className="v2-panel v2-activity-panel">
       <div className="v2-panel-heading"><div><h2>Launch activity</h2><p>A timeline of changes and collaboration on this launch.</p></div><span className="v2-result-count">{items.length} events</span></div>
       {items.length ? <div className="v2-activity-list">{items.map(item => <article className="v2-activity-row" key={item.id}><span className="v2-list-empty-icon"><Icon name="clock" size={16}/></span><div><strong>{item.message || 'Workspace update'}</strong><small>{item.actorName || 'Team member'} · {formatDate(item.createdAt)}</small></div></article>)}</div> : <div className="v2-list-empty"><span className="v2-list-empty-icon"><Icon name="clock" size={17}/></span><div><strong>No activity recorded yet</strong><p>Task, comment and file updates will appear here.</p></div></div>}
+    </section>
+  )
+}
+
+export function LaunchCountdown({ targetDate, compact = false }) {
+  const [now, setNow] = useState(() => new Date())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60 * 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const countdown = getLaunchCountdown(targetDate, now)
+  return (
+    <div className={'v2-launch-countdown ' + (compact ? 'compact ' : '') + 'is-' + countdown.kind} aria-live="polite">
+      <Icon name="clock" size={compact ? 13 : 17}/>
+      <span>{countdown.label}</span>
+    </div>
+  )
+}
+
+export function DeadlineExtensionPanel({ project, orgId, projectId, user, canManage }) {
+  const countdown = getLaunchCountdown(project?.targetLaunchDate)
+  const [days, setDays] = useState('7')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const submit = async event => {
+    event.preventDefault()
+    const extensionDays = Number(days)
+    if (!Number.isInteger(extensionDays) || extensionDays < 1 || extensionDays > 365) {
+      setError('Choose between 1 and 365 extra days.')
+      return
+    }
+    let nextDate
+    try {
+      nextDate = addDaysToDateOnly(project.targetLaunchDate, extensionDays)
+    } catch {
+      setError('Set a valid target launch date before extending the deadline.')
+      return
+    }
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const history = Array.isArray(project.deadlineExtensions) ? project.deadlineExtensions : []
+      await updateDoc(doc(db, 'organisations', orgId, 'projects', projectId), {
+        targetLaunchDate: nextDate,
+        deadlineExtensions: [
+          ...history.slice(-19),
+          {
+            previousDate: project.targetLaunchDate,
+            newDate: nextDate,
+            days: extensionDays,
+            extendedBy: user.uid,
+            extendedByName: user.displayName || user.email || 'Project manager',
+            extendedAt: new Date().toISOString()
+          }
+        ],
+        updatedAt: serverTimestamp()
+      })
+      setNotice('Launch deadline extended to ' + nextDate + '.')
+    } catch (saveError) {
+      console.warn('PLTK deadline extension failed:', saveError?.code || saveError)
+      setError('The new deadline could not be saved. Confirm your project manager access.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (project?.status === 'launched' || countdown.kind !== 'overdue') return null
+
+  return (
+    <section className="v2-panel v2-deadline-panel">
+      <div className="v2-panel-heading">
+        <div>
+          <span className="v2-eyebrow">TARGET DATE PASSED</span>
+          <h2>Do you need more time?</h2>
+          <p>This launch is {countdown.days} {countdown.days === 1 ? 'day' : 'days'} past its target date. How many additional days should be added?</p>
+        </div>
+        <span className="v2-panel-icon overdue"><Icon name="clock" size={18}/></span>
+      </div>
+      {error && <div className="v2-alert v2-alert-error">{error}</div>}
+      {notice && <div className="v2-alert v2-alert-success">{notice}</div>}
+      {canManage ? (
+        <form className="v2-deadline-form" onSubmit={submit}>
+          <label className="v2-field">
+            <span>Additional days</span>
+            <input type="number" min="1" max="365" step="1" value={days} onChange={event => setDays(event.target.value)} required/>
+          </label>
+          <button className="v2-button v2-button-primary" disabled={busy || !days || Number(days) < 1 || Number(days) > 365}>
+            {busy ? 'Extending…' : 'Extend launch deadline'} <Icon name="arrow" size={15}/>
+          </button>
+        </form>
+      ) : <p className="v2-invite-footnote">Ask your project manager to confirm how many extra days are needed.</p>}
+      {Array.isArray(project.deadlineExtensions) && project.deadlineExtensions.length > 0 && (
+        <p className="v2-deadline-history">Previous extensions: {project.deadlineExtensions.length}</p>
+      )}
+    </section>
+  )
+}
+
+function archiveSafeName(value, fallback = 'file') {
+  const name = String(value || fallback).replace(/[\\\\/:*?"<>|]+/g, '_').replace(/\\s+/g, ' ').trim()
+  return name.slice(0, 120) || fallback
+}
+
+function timestampToText(value) {
+  if (!value) return ''
+  const date = typeof value === 'string' ? new Date(value) : value?.toDate?.()
+  return date && !Number.isNaN(date.getTime()) ? date.toISOString() : ''
+}
+
+async function fetchArchiveEntry(url, name) {
+  if (!url) throw new Error(name + ' has no download URL.')
+  const response = await fetch(url)
+  if (!response.ok) throw new Error('Could not download "' + name + '" for the archive (HTTP ' + response.status + ').')
+  return new Uint8Array(await response.arrayBuffer())
+}
+
+export function LaunchCloseoutPanel({ project, orgId, projectId, user, canManage }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const isLaunched = project?.status === 'launched'
+
+  const downloadArchive = async () => {
+    if (!isLaunched || !canManage || busy) return
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const base = ['organisations', orgId, 'projects', projectId]
+      const [fileSnapshot, taskSnapshot, milestoneSnapshot] = await Promise.all([
+        getDocs(collection(db, ...base, 'files')),
+        getDocs(collection(db, ...base, 'tasks')),
+        getDocs(collection(db, ...base, 'milestones'))
+      ])
+      const tasks = taskSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      const discussionSnapshots = await Promise.all(tasks.map(task =>
+        getDocs(collection(db, ...base, 'tasks', task.id, 'comments'))
+      ))
+
+      const archiveEntries = []
+      const discussionLines = []
+      const downloadedFiles = []
+      const downloadedImages = []
+      const projectFolder = archiveSafeName(project.name, 'PLTK launch')
+
+      for (const fileDoc of fileSnapshot.docs) {
+        const file = fileDoc.data()
+        const fileName = archiveSafeName(file.name, 'launch-file')
+        const archiveName = projectFolder + '/Launch files/' + fileName
+        archiveEntries.push({ name: archiveName, bytes: await fetchArchiveEntry(file.downloadURL, file.name || fileName) })
+        downloadedFiles.push({ name: file.name || fileName, archivePath: archiveName, size: file.size || 0 })
+      }
+
+      for (let taskIndex = 0; taskIndex < tasks.length; taskIndex += 1) {
+        const task = tasks[taskIndex]
+        const comments = discussionSnapshots[taskIndex].docs.map(item => ({ id: item.id, ...item.data() }))
+          .sort((a, b) => timestampToText(a.createdAt).localeCompare(timestampToText(b.createdAt)))
+        const taskFolder = archiveSafeName(task.title, 'task') + '-' + task.id.slice(0, 8)
+        discussionLines.push('TASK: ' + task.title + '\n' + (task.description || '') + '\n')
+        for (const comment of comments) {
+          discussionLines.push('[' + timestampToText(comment.createdAt) + '] ' + (comment.authorName || 'Team member') + ':\n' + (comment.text || '[Image-only comment]') + '\n')
+          const attachments = Array.isArray(comment.attachments) ? comment.attachments : []
+          for (let attachmentIndex = 0; attachmentIndex < attachments.length; attachmentIndex += 1) {
+            const attachment = attachments[attachmentIndex]
+            const fileName = archiveSafeName(attachment.name, 'comment-image-' + (attachmentIndex + 1))
+            const archiveName = projectFolder + '/Task evidence/' + taskFolder + '/' + comment.id.slice(0, 8) + '-' + (attachmentIndex + 1) + '-' + fileName
+            archiveEntries.push({ name: archiveName, bytes: await fetchArchiveEntry(attachment.downloadURL, attachment.name || fileName) })
+            downloadedImages.push({ task: task.title, name: attachment.name || fileName, archivePath: archiveName, size: attachment.size || 0 })
+            discussionLines.push('  Image: ' + archiveName)
+          }
+        }
+        discussionLines.push('')
+      }
+
+      const milestones = milestoneSnapshot.docs.map(item => {
+        const data = item.data()
+        return { id: item.id, title: data.title || '', description: data.description || '', dueDate: data.dueDate || null, status: data.status || 'not_started' }
+      })
+      const manifest = {
+        product: 'PLTK — Product Launch Tracker',
+        organisationId: orgId,
+        projectId,
+        launch: {
+          name: project.name,
+          description: project.description || '',
+          status: project.status,
+          targetLaunchDate: project.targetLaunchDate || null,
+          launchedAt: timestampToText(project.launchedAt) || null,
+          createdAt: timestampToText(project.createdAt) || null
+        },
+        exportedAt: new Date().toISOString(),
+        taskCount: tasks.length,
+        completedTaskCount: tasks.filter(task => task.status === 'done').length,
+        milestoneCount: milestones.length,
+        files: downloadedFiles,
+        commentImages: downloadedImages,
+        milestones
+      }
+
+      archiveEntries.push({
+        name: projectFolder + '/Launch manifest.json',
+        bytes: new TextEncoder().encode(JSON.stringify(manifest, null, 2))
+      })
+      archiveEntries.push({
+        name: projectFolder + '/Task discussions.txt',
+        bytes: new TextEncoder().encode(discussionLines.join('\n') || 'No task discussions were recorded.')
+      })
+
+      const zip = createZipBlob(archiveEntries)
+      const downloadUrl = URL.createObjectURL(zip)
+      const anchor = document.createElement('a')
+      anchor.href = downloadUrl
+      anchor.download = archiveSafeName(project.name, 'PLTK-launch') + '-closeout.zip'
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 60_000)
+
+      setNotice('Archive prepared: ' + downloadedFiles.length + ' project file(s), ' + downloadedImages.length + ' comment image(s), plus launch notes and manifest.')
+      try {
+        await updateDoc(doc(db, ...base), {
+          closeoutExportedAt: serverTimestamp(),
+          closeoutExportedBy: user.uid,
+          closeoutExportFileCount: archiveEntries.length,
+          updatedAt: serverTimestamp()
+        })
+      } catch (exportLogError) {
+        console.warn('PLTK close-out export log could not be saved:', exportLogError?.code || exportLogError)
+      }
+    } catch (archiveError) {
+      console.error('PLTK close-out archive failed:', archiveError)
+      setError(archiveError.message || 'The launch archive could not be created. Check project and Storage access.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="v2-panel v2-closeout-panel">
+      <div className="v2-panel-heading">
+        <div>
+          <span className="v2-eyebrow">LAUNCH CLOSE-OUT</span>
+          <h2>Download the project archive</h2>
+          <p>Collect launch files, complaint screenshots, task discussions and a project manifest into one ZIP folder.</p>
+        </div>
+        <span className="v2-panel-icon"><Icon name="archive" size={18}/></span>
+      </div>
+      {!isLaunched && <div className="v2-alert v2-alert-success">The archive becomes available once this launch is marked as launched.</div>}
+      {isLaunched && canManage && (
+        <div className="v2-closeout-action">
+          <div><strong>Everything in one package</strong><p>Project files and task-comment images are fetched from Firebase Storage and bundled in your browser.</p></div>
+          <button className="v2-button v2-button-primary" onClick={downloadArchive} disabled={busy}>
+            {busy ? 'Preparing ZIP…' : 'Download close-out ZIP'} <Icon name="download" size={16}/>
+          </button>
+        </div>
+      )}
+      {isLaunched && !canManage && <p className="v2-invite-footnote">Only the project manager or an organisation administrator can export the final launch archive.</p>}
+      {project.closeoutExportedAt && <p className="v2-closeout-history">Last archive prepared {timestampToText(project.closeoutExportedAt) || 'previously'} by {project.closeoutExportedBy === user?.uid ? 'you' : 'a workspace manager'}.</p>}
+      {error && <div className="v2-alert v2-alert-error">{error}</div>}
+      {notice && <div className="v2-alert v2-alert-success">{notice}</div>}
     </section>
   )
 }

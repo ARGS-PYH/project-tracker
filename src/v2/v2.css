@@ -784,3 +784,24 @@
   font-size: 6px;
   letter-spacing: .12em;
 }
+
+
+/* Launch countdown, deadline extensions and close-out archive */
+.v2-launch-countdown { display: inline-flex; align-items: center; gap: 9px; width: fit-content; margin-top: 15px; padding: 9px 13px; border: 1px solid var(--v2-brand-border); border-radius: 10px; color: var(--v2-brand); background: var(--v2-brand-soft); font-size: 12px; font-weight: 750; }
+.v2-launch-countdown.compact { margin: 12px 0 2px; padding: 7px 10px; font-size: 10px; border-radius: 8px; }
+.v2-launch-countdown.is-today { color: #a66b22; background: #fff5dc; border-color: #f1d99c; }
+.v2-launch-countdown.is-overdue { color: var(--v2-danger); background: color-mix(in srgb, var(--v2-danger) 9%, var(--v2-surface)); border-color: color-mix(in srgb, var(--v2-danger) 28%, var(--v2-border)); }
+.v2-deadline-panel { border-color: color-mix(in srgb, var(--v2-warning) 30%, var(--v2-border)); }
+.v2-panel-icon.overdue { color: var(--v2-danger); background: color-mix(in srgb, var(--v2-danger) 10%, var(--v2-surface)); }
+.v2-deadline-form { display: flex; align-items: flex-end; gap: 12px; margin-top: 16px; }
+.v2-deadline-form .v2-field { width: min(100%, 230px); }
+.v2-deadline-history { margin-top: 12px; color: var(--v2-subtle); font-size: 10px; }
+.v2-closeout-action { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 16px; padding: 17px; border: 1px solid var(--v2-border); border-radius: 11px; background: var(--v2-surface-soft); }
+.v2-closeout-action > div { display: flex; flex-direction: column; gap: 5px; }
+.v2-closeout-action strong { color: var(--v2-text); font-size: 12px; }
+.v2-closeout-action p { color: var(--v2-muted); font-size: 10px; line-height: 1.5; }
+.v2-closeout-history { margin-top: 13px; color: var(--v2-subtle); font-size: 10px; }
+@media (max-width: 620px) {
+  .v2-deadline-form, .v2-closeout-action { align-items: stretch; flex-direction: column; }
+  .v2-deadline-form .v2-field { width: 100%; }
+}
