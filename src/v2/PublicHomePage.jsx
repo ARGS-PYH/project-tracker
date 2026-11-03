@@ -44,7 +44,7 @@ export default function PublicHomePage() {
 
           <div className="v2-marketing-preview" aria-label="Illustrative PLTK dashboard preview">
             <div className="v2-preview-window">
-              <div className="v2-preview-top"><span className="v2-preview-logo"><img src="/pltk-mark.svg" alt="" /></span><strong>PLTK</strong><span className="v2-preview-company">Northstar Labs <Icon name="chevronDown" size={12}/></span><span className="v2-preview-avatar">J</span></div>
+              <div className="v2-preview-top"><span className="v2-preview-logo"><img src="/pltk-rocket-brand.svg?v=20261103" alt="" /></span><strong>PLTK</strong><span className="v2-preview-company">Northstar Labs <Icon name="chevronDown" size={12}/></span><span className="v2-preview-avatar">J</span></div>
               <div className="v2-preview-body">
                 <div className="v2-preview-sidebar">
                   <span className="selected"><Icon name="grid" size={13}/> Overview</span>

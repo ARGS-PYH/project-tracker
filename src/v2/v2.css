@@ -1,21 +1,21 @@
 :root {
-  --v2-bg: #f5f7f6;
+  --v2-bg: #f1f8f3;
   --v2-surface: #ffffff;
-  --v2-surface-soft: #f8faf9;
-  --v2-sidebar: #fbfcfb;
-  --v2-text: #17221d;
-  --v2-muted: #6f7d75;
-  --v2-subtle: #94a199;
-  --v2-border: #e4eae6;
-  --v2-brand: #167b55;
-  --v2-brand-hover: #116744;
-  --v2-brand-soft: #eaf4ee;
-  --v2-brand-border: #d3e8da;
-  --v2-shadow: 0 8px 24px rgba(21, 42, 31, .045);
+  --v2-surface-soft: #f7fbf8;
+  --v2-sidebar: #eaf4ed;
+  --v2-text: #14251b;
+  --v2-muted: #5d7165;
+  --v2-subtle: #809487;
+  --v2-border: #d9e8dd;
+  --v2-brand: #08a85d;
+  --v2-brand-hover: #07874d;
+  --v2-brand-soft: #e1f7e9;
+  --v2-brand-border: #bce8ce;
+  --v2-shadow: 0 10px 30px rgba(14, 60, 34, .075);
   --v2-danger: #bd4545;
-  --v2-warning: #a66b22;
-  --v2-blue: #4673a9;
-  --v2-purple: #7863a9;
+  --v2-warning: #98601c;
+  --v2-blue: #3678a8;
+  --v2-purple: #7259b5;
 }
 [data-theme="dark"] {
   --v2-bg: #0d1512;
@@ -742,4 +742,45 @@
   .v2-comment-composer-actions { align-items: stretch; }
   .v2-comment-composer-actions > button { margin-left: 0; }
   .v2-comment-attachment-hint { flex: 1 1 100%; order: 3; }
+}
+
+
+/* Brighter mint-and-emerald light workspace palette */
+[data-theme="light"] .v2-sidebar {
+  background: linear-gradient(180deg, #edf7f0 0%, #e8f3ec 100%);
+}
+[data-theme="light"] .v2-sidebar-head {
+  border-bottom: 1px solid rgba(25, 100, 57, .08);
+}
+[data-theme="light"] .v2-topbar {
+  background: rgba(255, 255, 255, .88);
+}
+[data-theme="light"] .v2-card,
+[data-theme="light"] .v2-panel,
+[data-theme="light"] .v2-metric-card,
+[data-theme="light"] .v2-stat-card {
+  box-shadow: var(--v2-shadow);
+}
+[data-theme="light"] .v2-nav-link.active {
+  color: #087b45;
+  background: #d8f2e1;
+}
+[data-theme="light"] .v2-nav-link:hover {
+  background: #deefe3;
+}
+[data-theme="light"] .v2-button-primary {
+  box-shadow: 0 5px 14px rgba(8, 168, 93, .16);
+}
+.v2-sidebar-head .v2-brand-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 12px;
+}
+.v2-sidebar-head .v2-brand-copy strong {
+  font-size: 20px;
+}
+.v2-sidebar-head .v2-brand-copy small {
+  font-size: 6px;
+  letter-spacing: .12em;
 }
