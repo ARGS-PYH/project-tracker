@@ -145,6 +145,7 @@ export function WorkspaceProvider({ children }) {
     // Clear the previous organisation's projects immediately so data from
     // the last workspace is never displayed while the next listener starts.
     setProjects([])
+    setDeletedProjects([])
     setProjectsLoading(true)
 
     // Guests only query their own explicit project access index. Standard
