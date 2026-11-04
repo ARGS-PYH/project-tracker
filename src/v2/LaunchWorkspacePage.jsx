@@ -11,13 +11,13 @@ import {
   updateDoc,
   writeBatch
 } from 'firebase/firestore'
-import { db, storage } from '../firebase.js'
-import { deleteObject, listAll, ref as storageRef } from 'firebase/storage'
+import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
 import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel, ProjectSettingsPanel, ProjectDeletionPanel, LaunchCountdown, DeadlineExtensionPanel, LaunchCloseoutPanel } from './LaunchExtras.jsx'
 import { sendTaskAssignmentNotification } from './assignmentNotifications.js'
+import { createProjectCloseoutPackage, downloadProjectCloseoutPackage } from './projectReports.js'
 
 const taskStatuses = [
   { value: 'todo', label: 'To do' },
@@ -46,12 +46,6 @@ function hasCircularDependency(tasks, targetId, dependencies) {
     return (graph.get(id) || []).some(dependencyId => visit(dependencyId, nextPath))
   }
   return visit(targetId, new Set())
-}
-
-async function collectStorageFiles(folderRef) {
-  const page = await listAll(folderRef)
-  const nested = await Promise.all(page.prefixes.map(prefix => collectStorageFiles(prefix)))
-  return [...page.items, ...nested.flat()]
 }
 
 function makeAssignmentNotificationId() {
@@ -241,7 +235,7 @@ function MilestoneCard({ milestone, tasks, canManage, onStatusChange, onEdit }) 
 
 export default function LaunchWorkspacePage() {
   const { projectId } = useParams()
-  const { selectedOrgId, selectedOrganisation, projects, projectsLoading } = useWorkspace()
+  const { selectedOrgId, selectedOrganisation, projects, deletedProjects, projectsLoading } = useWorkspace()
   const { user } = useAuth()
   const [tasks, setTasks] = useState([])
   const [milestones, setMilestones] = useState([])
@@ -267,7 +261,7 @@ export default function LaunchWorkspacePage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const project = projects.find(item => item.id === projectId)
+  const project = projects.find(item => item.id === projectId) || deletedProjects.find(item => item.id === projectId)
 
   useEffect(() => {
     if (!selectedOrgId || !projectId) {
@@ -276,6 +270,16 @@ export default function LaunchWorkspacePage() {
       setMilestones([])
       setProjectMembers([])
       setOrgMembers([])
+      return undefined
+    }
+    if (project?.deletionStatus === 'deleted') {
+      setLoading(false)
+      setTasks([])
+      setMilestones([])
+      setProjectMembers([])
+      setOrgMembers([])
+      setFiles([])
+      setActivity([])
       return undefined
     }
     setLoading(true)
@@ -368,7 +372,7 @@ export default function LaunchWorkspacePage() {
       unsubFiles()
       unsubActivity()
     }
-  }, [selectedOrgId, projectId, selectedOrganisation?.role])
+  }, [selectedOrgId, projectId, selectedOrganisation?.role, project?.deletionStatus])
 
   const filteredTasks = useMemo(() => tasks.filter(task => statusFilter === 'all' || task.status === statusFilter), [tasks, statusFilter])
   const timelineGroups = useMemo(() => {
@@ -790,8 +794,11 @@ export default function LaunchWorkspacePage() {
 
 
   const deleteProject = async () => {
-    if (!canDeleteProject || !project || deletingProject) return
-    const confirmed = window.confirm('Permanently delete "' + project.name + '" and all its tasks, comments, files, images, milestones and activity? This cannot be undone.')
+    if (!canDeleteProject || !project || deletingProject || project.deletionStatus === 'deleted') return
+    const confirmed = window.confirm(
+      'Download the Excel and PDF closeout reports, then move "' + project.name
+      + '" to Deleted Projects? It will disappear from active workspaces, but its records and uploaded files will be retained for recovery.'
+    )
     if (!confirmed) return
     setDeletingProject(true)
     setError('')
@@ -805,37 +812,63 @@ export default function LaunchWorkspacePage() {
         getDocs(collection(db, ...base, 'activity')),
         getDocs(collection(db, ...base, 'members'))
       ])
-      const tasks = taskSnapshot.docs
-      const commentsByTask = await Promise.all(tasks.map(task => getDocs(collection(db, ...base, 'tasks', task.id, 'comments'))))
-      // Keep project membership records until Storage cleanup finishes so Storage rules can authorise deletion.
-      const storedObjects = await collectStorageFiles(storageRef(storage, 'organisations/' + selectedOrgId + '/projects/' + projectId))
-      for (let index = 0; index < storedObjects.length; index += 12) {
-        await Promise.all(storedObjects.slice(index, index + 12).map(objectRef => deleteObject(objectRef).catch(removeError => {
-          if (removeError?.code !== 'storage/object-not-found') throw removeError
-        })))
-      }
-      const refs = []
-      commentsByTask.forEach(snapshot => snapshot.docs.forEach(item => refs.push(item.ref)))
-      tasks.forEach(item => refs.push(item.ref))
-      milestoneSnapshot.docs.forEach(item => refs.push(item.ref))
-      fileSnapshot.docs.forEach(item => refs.push(item.ref))
-      activitySnapshot.docs.forEach(item => refs.push(item.ref))
-      memberSnapshot.docs.forEach(item => {
-        refs.push(item.ref)
-        refs.push(doc(db, 'organisations', selectedOrgId, 'members', item.id, 'projects', projectId))
+      const tasks = taskSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      const milestones = milestoneSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      const files = fileSnapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      const activity = activitySnapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+      const commentsByTask = await Promise.all(tasks.map(async task => {
+        const snapshot = await getDocs(collection(db, ...base, 'tasks', task.id, 'comments'))
+        return {
+          taskId: task.id,
+          taskTitle: task.title || 'Task',
+          comments: snapshot.docs.map(item => ({ id: item.id, ...item.data() }))
+        }
+      }))
+      const members = memberSnapshot.docs.map(item => {
+        const membership = item.data()
+        const profile = orgMembers.find(member => member.id === item.id) || {}
+        return {
+          id: item.id,
+          ...profile,
+          ...membership,
+          displayName: membership.displayName || profile.displayName || profile.name || 'Team member',
+          email: membership.email || profile.email || ''
+        }
       })
-      refs.push(doc(db, ...base))
-      for (let index = 0; index < refs.length; index += 400) {
-        const batch = writeBatch(db)
-        refs.slice(index, index + 400).forEach(reference => batch.delete(reference))
-        await batch.commit()
-      }
-      navigate('/app/launches', { replace: true })
+
+      // Build the reports before changing the launch state. If export generation
+      // fails, the project remains active and no records are modified.
+      const closeoutPackage = await createProjectCloseoutPackage({
+        project,
+        organisationName: selectedOrganisation?.name || '',
+        tasks,
+        milestones,
+        files,
+        activity,
+        members,
+        commentsByTask
+      })
+
+      // Initiate the single ZIP download containing the Excel workbook and PDF.
+      downloadProjectCloseoutPackage(closeoutPackage, project.name)
+
+      // Soft delete only: do not enumerate or remove Storage objects and do not
+      // delete Firestore subcollections. This keeps the project recoverable.
+      await updateDoc(doc(db, ...base), {
+        deletionStatus: 'deleted',
+        deletedAt: serverTimestamp(),
+        deletedByUid: user.uid,
+        deletedByName: user.displayName || user.email || 'Workspace administrator',
+        deletionReportGeneratedAt: serverTimestamp(),
+        deletionReportVersion: 1,
+        updatedAt: serverTimestamp()
+      })
+      setNotice('Closeout report prepared. This launch has been moved to Deleted Projects.')
     } catch (deleteError) {
-      console.error('PLTK launch deletion failed:', deleteError)
-      setError(deleteError?.code === 'storage/unauthorized' || deleteError?.code === 'permission-denied'
-        ? 'Deletion stopped because Firebase denied access to one or more project records or files. Check the deployed Firestore and Storage rules before retrying.'
-        : 'The launch could not be fully deleted. Some files or records may already have been removed. Check the Firebase connection and retry after reviewing the project data.')
+      console.error('PLTK soft deletion failed:', deleteError)
+      setError(deleteError?.code === 'permission-denied'
+        ? 'PLTK could not mark this launch as deleted. Confirm that you are an organisation owner or administrator and that the latest Firestore rules are deployed.'
+        : deleteError?.message || 'The closeout report could not be prepared, so the launch was not moved to Deleted Projects.')
     } finally {
       setDeletingProject(false)
     }
@@ -865,6 +898,21 @@ export default function LaunchWorkspacePage() {
 
   if (projectsLoading || loading) return <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading launch workspace…</div>
   if (!project) return <div className="v2-empty-state"><h3>Launch not found</h3><p>This launch may have been removed or you may not have access to it.</p><Link className="v2-button v2-button-secondary" to="/app/launches">Back to launches</Link></div>
+  if (project.deletionStatus === 'deleted') return (
+    <div className="v2-page">
+      <div className="v2-empty-state">
+        <span className="v2-empty-icon"><Icon name="trash" size={25}/></span>
+        <span className="v2-eyebrow">DELETED LAUNCH</span>
+        <h1>This launch has been moved to Deleted Projects</h1>
+        <p><strong>{project.name}</strong> is no longer available in the active workspace. Its records and uploaded files have been retained and have not been permanently erased.</p>
+        <p className="v2-invite-footnote">Moved on {formatDate(project.deletedAt)}{project.deletedByName ? ' by ' + project.deletedByName : ''}.</p>
+        <div className="v2-form-actions">
+          <Link className="v2-button v2-button-secondary" to="/app/launches">Back to active launches</Link>
+          {['owner', 'admin'].includes(selectedOrganisation?.role) && <Link className="v2-button v2-button-primary" to="/app/launches/deleted">Open Deleted Projects</Link>}
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="v2-page">
