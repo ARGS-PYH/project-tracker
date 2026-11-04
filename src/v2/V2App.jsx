@@ -12,7 +12,8 @@ import { MyTasksPage, MilestonesPage, ReportsPage, NotificationsPage, Organisati
 import {
   LaunchesPage,
   NewLaunchPage,
-  OverviewPage
+  OverviewPage,
+  DeletedLaunchesPage
 } from './WorkspacePages.jsx'
 import './v2.css'
 
@@ -46,6 +47,7 @@ function V2Routes() {
           <Route path="overview" element={<OverviewPage/>}/>
           <Route path="launches" element={<LaunchesPage/>}/>
           <Route path="launches/new" element={<NewLaunchPage/>}/>
+          <Route path="launches/deleted" element={<DeletedLaunchesPage/>}/>
           <Route path="launches/:projectId" element={<LaunchWorkspacePage/>}/>
           <Route path="tasks" element={<MyTasksPage/>}/>
           <Route path="milestones" element={<MilestonesPage/>}/>
