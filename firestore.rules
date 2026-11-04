@@ -224,7 +224,23 @@ service cloud.firestore {
         allow read: if canReadProject(orgId, projectId);
         allow update: if canManageProject(orgId, projectId)
           && request.resource.data.organisationId == resource.data.organisationId
-          && request.resource.data.ownerUid == resource.data.ownerUid;
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          // Only organisation owners and admins can change soft-deletion or
+          // restoration metadata. Project managers retain normal edit access.
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+              'deletionStatus',
+              'deletedAt',
+              'deletedByUid',
+              'deletedByName',
+              'deletionReportGeneratedAt',
+              'deletionReportVersion',
+              'restoredAt',
+              'restoredByUid',
+              'restoredByName'
+            ])
+            || isOrgAdmin(orgId)
+          );
         allow delete: if isOrgAdmin(orgId);
 
         match /members/{projectMemberUid} {
