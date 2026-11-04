@@ -4,6 +4,9 @@ import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
 import { useProjectData } from './AdvancedWorkspacePages.jsx'
 import { LaunchCountdown } from './LaunchExtras.jsx'
+import { db } from '../firebase.js'
+import { doc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { useAuth } from './auth/AuthProvider.jsx'
 
 function PageHeader({ eyebrow, title, description, action }) {
   return (
@@ -253,6 +256,83 @@ export function PlaceholderPage({ title, description }) {
         <h3>This workspace is being prepared</h3>
         <p>The information architecture is in place. This section will be implemented as part of the next product releases.</p>
       </div>
+    </div>
+  )
+}
+
+
+export function DeletedLaunchesPage() {
+  const { deletedProjects, selectedOrgId, selectedOrganisation } = useWorkspace()
+  const { user } = useAuth()
+  const [restoringId, setRestoringId] = useState('')
+  const [error, setError] = useState('')
+  const canRestore = ['owner', 'admin'].includes(selectedOrganisation?.role)
+
+  const restore = async project => {
+    if (!canRestore || !user?.uid || restoringId) return
+    const confirmed = window.confirm('Restore "' + project.name + '" to the active launches workspace?')
+    if (!confirmed) return
+    setRestoringId(project.id)
+    setError('')
+    try {
+      await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', project.id), {
+        deletionStatus: 'active',
+        restoredAt: serverTimestamp(),
+        restoredByUid: user.uid,
+        restoredByName: user.displayName || user.email || 'Workspace administrator',
+        updatedAt: serverTimestamp()
+      })
+    } catch (restoreError) {
+      console.error('PLTK launch restore failed:', restoreError)
+      setError(restoreError?.code === 'permission-denied'
+        ? 'You do not have permission to restore this launch.'
+        : 'The launch could not be restored. Please try again.')
+    } finally {
+      setRestoringId('')
+    }
+  }
+
+  return (
+    <div className="v2-page">
+      <PageHeader
+        eyebrow="WORKSPACE RECOVERY"
+        title="Deleted projects"
+        description="Launches moved out of the active workspace. Restore a launch to make it available again."
+        action={<Link className="v2-button v2-button-secondary" to="/app/launches">Back to launches</Link>}
+      />
+      {error && <div className="v2-alert v2-alert-error" role="alert">{error}</div>}
+      {!canRestore ? (
+        <div className="v2-empty-state"><h3>Administrator access required</h3><p>Only organisation owners and administrators can restore deleted launches.</p></div>
+      ) : deletedProjects.length ? (
+        <div className="v2-launch-grid">
+          {deletedProjects.map(project => (
+            <article className="v2-launch-card" key={project.id}>
+              <div className="v2-launch-card-top">
+                <span className="v2-launch-mark"><Icon name="trash" size={18}/></span>
+                <span className="v2-status-pill status-paused">Deleted</span>
+              </div>
+              <h3>{project.name}</h3>
+              <p>{project.description || 'No project description has been added.'}</p>
+              <div className="v2-launch-card-foot">
+                <span><Icon name="calendar" size={14}/>{project.deletedAt?.toDate ? project.deletedAt.toDate().toLocaleDateString() : 'Deletion date recorded'}</span>
+                <span><Icon name="user" size={14}/>{project.deletedByName || 'Workspace administrator'}</span>
+              </div>
+              <div className="v2-form-actions">
+                <Link className="v2-button v2-button-secondary" to={'/app/launches/' + project.id}>View deleted page</Link>
+                <button className="v2-button v2-button-primary" type="button" onClick={() => restore(project)} disabled={Boolean(restoringId)}>
+                  {restoringId === project.id ? 'Restoring…' : 'Restore launch'} <Icon name="refresh" size={15}/>
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div className="v2-empty-state">
+          <span className="v2-empty-icon"><Icon name="archive" size={25}/></span>
+          <h3>No deleted launches</h3>
+          <p>When an organisation owner or administrator moves a launch to Deleted Projects, it will appear here for recovery.</p>
+        </div>
+      )}
     </div>
   )
 }
