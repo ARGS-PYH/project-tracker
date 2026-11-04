@@ -312,7 +312,7 @@ export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, ca
     try {
       const attachments = Array.isArray(comment.attachments) ? comment.attachments : []
       await Promise.all(attachments.filter(item => item.storagePath).map(item =>
-        deleteObject(storageRef(getStorage(), item.storagePath)).catch(removeError => {
+        deleteObject(storageRef(storage, item.storagePath)).catch(removeError => {
           if (removeError?.code !== 'storage/object-not-found') throw removeError
         })
       ))
@@ -438,7 +438,7 @@ export function ProjectFilesPanel({ orgId, projectId, user, canUpload, canDelete
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'attachment'
       const path = 'organisations/' + orgId + '/projects/' + projectId + '/' + Date.now() + '-' + safeName
-      const target = storageRef(getStorage(), path)
+      const target = storageRef(storage, path)
       const uploaded = await uploadBytes(target, file, {contentType:file.type})
       const downloadURL = await getDownloadURL(uploaded.ref)
       await addDoc(collection(db, 'organisations', orgId, 'projects', projectId, 'files'), {
@@ -464,7 +464,7 @@ export function ProjectFilesPanel({ orgId, projectId, user, canUpload, canDelete
     if (!canDelete) return
     setError('')
     try {
-      if (file.storagePath) await deleteObject(storageRef(getStorage(), file.storagePath))
+      if (file.storagePath) await deleteObject(storageRef(storage, file.storagePath))
       await deleteDoc(doc(db, 'organisations', orgId, 'projects', projectId, 'files', file.id))
       setNotice('File deleted.')
     } catch {

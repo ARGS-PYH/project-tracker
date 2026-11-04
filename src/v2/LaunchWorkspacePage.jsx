@@ -54,6 +54,11 @@ async function collectStorageFiles(folderRef) {
   return [...page.items, ...nested.flat()]
 }
 
+function makeAssignmentNotificationId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2)
+}
+
 function dateKey(date) {
   return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0')
 }
@@ -535,6 +540,7 @@ export default function LaunchWorkspacePage() {
     setError('')
     setNotice('')
     try {
+      const assignmentNotificationId = values.assigneeUid ? makeAssignmentNotificationId() : null
       const createdTask = await addDoc(collection(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks'), {
         title: values.title.trim(),
         description: values.description.trim(),
@@ -546,6 +552,7 @@ export default function LaunchWorkspacePage() {
         dependsOn: [],
         assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
         assignedToUid: values.assigneeUid || null,
+        assignmentNotificationId,
         assignedToName: values.assigneeUid
           ? (projectMembers.find(member => member.id === values.assigneeUid)?.displayName
             || orgMembers.find(member => member.id === values.assigneeUid)?.displayName
@@ -717,6 +724,9 @@ export default function LaunchWorkspacePage() {
       const previousAssigneeUid = editingTask.assignedToUid || editingTask.assigneeUids?.[0] || ''
       const nextAssigneeUid = values.assigneeUid || ''
       const assigneeChanged = Boolean(nextAssigneeUid && nextAssigneeUid !== previousAssigneeUid)
+      const assignmentNotificationId = assigneeChanged
+        ? makeAssignmentNotificationId()
+        : (nextAssigneeUid ? (editingTask.assignmentNotificationId || null) : null)
       await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', editingTask.id), {
         title: values.title.trim(),
         description: (values.description || '').trim(),
@@ -728,6 +738,7 @@ export default function LaunchWorkspacePage() {
         dependsOn: dependencies,
         assigneeUids: values.assigneeUid ? [values.assigneeUid] : [],
         assignedToUid: values.assigneeUid || null,
+        assignmentNotificationId,
         assignedToName: values.assigneeUid ? (member?.displayName || member?.email || (values.assigneeUid === user.uid ? user.email : 'Project member')) : null,
         updatedAt: serverTimestamp()
       })
