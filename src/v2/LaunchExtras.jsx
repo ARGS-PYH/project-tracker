@@ -7,16 +7,16 @@ import {
   getDocs,
   onSnapshot,
   serverTimestamp,
+  setDoc,
   updateDoc
 } from 'firebase/firestore'
 import {
   deleteObject,
   getDownloadURL,
-  getStorage,
   ref as storageRef,
   uploadBytes
 } from 'firebase/storage'
-import { db } from '../firebase.js'
+import { db, storage } from '../firebase.js'
 import Icon from './icons.jsx'
 import { createZipBlob } from './createZip.js'
 import { addDaysToDateOnly, getLaunchCountdown } from './launchDates.js'
@@ -104,7 +104,7 @@ export function TaskEditor({ task, milestones, members, tasks, onSave, onCancel,
   )
 }
 
-export function ProjectSettingsPanel({ project, canManage, canDelete, onSave, busy, deleting, onDelete }) {
+export function ProjectSettingsPanel({ project, canManage, onSave, busy }) {
   const [name, setName] = useState(project.name || '')
   const [description, setDescription] = useState(project.description || '')
   const [targetLaunchDate, setTargetLaunchDate] = useState(typeof project.targetLaunchDate === 'string' ? project.targetLaunchDate : '')
@@ -128,7 +128,6 @@ export function ProjectSettingsPanel({ project, canManage, canDelete, onSave, bu
         <label className="v2-field"><span>Target launch date</span><input type="date" value={targetLaunchDate} onChange={event => setTargetLaunchDate(event.target.value)} disabled={!canManage}/></label>
         {canManage ? <div className="v2-form-actions"><span className="v2-invite-footnote">Changes are shared with everyone who has access to this launch.</span><button className="v2-button v2-button-primary" disabled={busy || name.trim().length < 3}>{busy ? 'Saving…' : 'Save launch settings'} <Icon name="check" size={15}/></button></div> : <p className="v2-invite-footnote">Only a project manager or organisation administrator can edit launch settings.</p>}
       </form>
-      <ProjectDeletionPanel project={project} canDelete={canDelete} busy={deleting} onDelete={onDelete}/>
     </section>
   )
 }
@@ -176,6 +175,7 @@ export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, ca
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     if (!orgId || !projectId || !task?.id) {
@@ -244,51 +244,45 @@ export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, ca
 
     setBusy(true)
     setError('')
-    let commentRef = null
+    setNotice('')
     const uploadedAttachments = []
-    let uploadFailed = false
+    const commentRef = doc(collection(db, 'organisations', orgId, 'projects', projectId, 'tasks', task.id, 'comments'))
 
     try {
-      commentRef = await addDoc(collection(db, 'organisations', orgId, 'projects', projectId, 'tasks', task.id, 'comments'), {
-        text,
-        attachments: [],
-        authorUid: user.uid,
-        authorName: user.displayName || user.email || 'Team member',
-        createdAt: serverTimestamp()
-      })
-
+      // Upload first, then write one complete comment record. This avoids
+      // leaving a visible text-only comment if its attachment metadata fails.
       for (let index = 0; index < selectedImages.length; index += 1) {
         const file = selectedImages[index]
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100) || 'image'
         const path = 'organisations/' + orgId + '/projects/' + projectId
           + '/comment-attachments/' + task.id + '/' + commentRef.id
           + '/' + Date.now() + '-' + index + '-' + safeName
-
-        try {
-          const uploaded = await uploadBytes(storageRef(getStorage(), path), file, { contentType: file.type })
-          const downloadURL = await getDownloadURL(uploaded.ref)
-          uploadedAttachments.push({
-            name: file.name,
-            storagePath: path,
-            downloadURL,
-            contentType: file.type,
-            size: file.size
-          })
-        } catch (uploadError) {
-          console.warn('PLTK comment image upload failed:', uploadError?.code || uploadError)
-          uploadFailed = true
-          break
-        }
+        const uploaded = await uploadBytes(storageRef(storage, path), file, { contentType: file.type })
+        const downloadURL = await getDownloadURL(uploaded.ref)
+        uploadedAttachments.push({
+          name: file.name,
+          storagePath: path,
+          downloadURL,
+          contentType: file.type,
+          size: file.size
+        })
       }
 
-      if (uploadedAttachments.length) {
-        await updateDoc(commentRef, { attachments: uploadedAttachments })
-      } else if (!text) {
-        await deleteDoc(commentRef)
-      }
+      await setDoc(commentRef, {
+        text,
+        attachments: uploadedAttachments,
+        authorUid: user.uid,
+        authorName: user.displayName || user.email || 'Team member',
+        createdAt: serverTimestamp()
+      })
 
       setDraft('')
       setSelectedImages([])
+      setNotice(
+        uploadedAttachments.length
+          ? 'Comment posted with ' + uploadedAttachments.length + ' image attachment(s).'
+          : 'Comment posted.'
+      )
       onActivity?.(
         'comment_added',
         uploadedAttachments.length
@@ -296,22 +290,18 @@ export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, ca
           : 'Comment added to "' + task.title + '".',
         task.id
       )
-
-      if (uploadFailed) {
-        setError(
-          uploadedAttachments.length
-            ? 'Your comment was posted, but one or more images could not be uploaded. Check Firebase Storage and its rules.'
-            : 'Your comment text was posted, but the image could not be uploaded. Check Firebase Storage and its rules.'
-        )
-      }
     } catch (submitError) {
       console.warn('PLTK task comment submission failed:', submitError?.code || submitError)
-      if (uploadedAttachments.length) {
-        await Promise.allSettled(uploadedAttachments.map(item =>
-          deleteObject(storageRef(getStorage(), item.storagePath))
-        ))
-      }
-      setError('Your comment could not be completed. Check your project access and Firebase Storage configuration.')
+      await Promise.allSettled(uploadedAttachments.map(item =>
+        deleteObject(storageRef(storage, item.storagePath))
+      ))
+      const code = submitError?.code || 'unknown'
+      const message = code === 'storage/unauthorized'
+        ? 'Firebase Storage denied this upload. Confirm that Storage is enabled and the latest storage.rules are deployed.'
+        : code === 'permission-denied'
+          ? 'Firestore denied saving this comment. Deploy the latest Firestore rules and confirm your project access.'
+          : 'The comment and its images were not saved. Firebase reference: ' + code + '.'
+      setError(message)
     } finally {
       setBusy(false)
     }
@@ -337,6 +327,7 @@ export function TaskCommentsPanel({ orgId, projectId, task, user, canComment, ca
     <section className="v2-panel v2-comments-panel">
       <div className="v2-panel-heading"><div><h2>Discussion · {task.title}</h2><p>Keep decisions, complaints and supporting screenshots attached to the work.</p></div><span className="v2-result-count">{comments.length} comments</span></div>
       {error && <div className="v2-alert v2-alert-error">{error}</div>}
+      {notice && <div className="v2-alert v2-alert-success">{notice}</div>}
       {loading ? <div className="v2-card v2-card-loading"><span className="v2-spinner"/>Loading discussion…</div> : comments.length ? (
         <div className="v2-comments-list">
           {comments.map(comment => (

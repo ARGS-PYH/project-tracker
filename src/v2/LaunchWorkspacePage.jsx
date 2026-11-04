@@ -11,12 +11,13 @@ import {
   updateDoc,
   writeBatch
 } from 'firebase/firestore'
-import { db } from '../firebase.js'
-import { deleteObject, getStorage, listAll, ref as storageRef } from 'firebase/storage'
+import { db, storage } from '../firebase.js'
+import { deleteObject, listAll, ref as storageRef } from 'firebase/storage'
 import { useAuth } from './auth/AuthProvider.jsx'
 import { useWorkspace } from './WorkspaceContext.jsx'
 import Icon from './icons.jsx'
-import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel, ProjectSettingsPanel, LaunchCountdown, DeadlineExtensionPanel, LaunchCloseoutPanel } from './LaunchExtras.jsx'
+import { TaskEditor, ReadinessPanel, TaskCommentsPanel, ProjectFilesPanel, ProjectActivityPanel, ProjectSettingsPanel, ProjectDeletionPanel, LaunchCountdown, DeadlineExtensionPanel, LaunchCloseoutPanel } from './LaunchExtras.jsx'
+import { sendTaskAssignmentNotification } from './assignmentNotifications.js'
 
 const taskStatuses = [
   { value: 'todo', label: 'To do' },
@@ -508,6 +509,26 @@ export default function LaunchWorkspacePage() {
     }
   }
 
+  const notifyTaskAssignee = async taskId => {
+    try {
+      return await sendTaskAssignmentNotification({ user, orgId: selectedOrgId, projectId, taskId })
+    } catch (notificationError) {
+      console.warn('PLTK assignment email failed:', notificationError)
+      return { sent: false, reason: notificationError?.message || 'network_error' }
+    }
+  }
+
+  const assignmentNotice = (result, assigneeName) => {
+    if (!result) return ''
+    if (result.sent) return ' Email notification sent to ' + (assigneeName || 'the assignee') + '.'
+    const reason = result.reason === 'missing_api_url'
+      ? 'email service URL is not configured in VITE_API_BASE_URL'
+      : result.reason === 'no_smtp'
+        ? 'Render email credentials are not configured'
+        : result.error || result.reason || 'email service unavailable'
+    return ' Task saved, but the assignment email was not sent: ' + reason + '.'
+  }
+
   const createTask = async values => {
     if (!project || !user?.uid) return
     setBusy(true)
@@ -536,7 +557,14 @@ export default function LaunchWorkspacePage() {
         updatedAt: serverTimestamp()
       })
       await recordActivity('task_created', 'Created task "' + values.title.trim() + '".', createdTask.id)
-      setNotice('Task added to the launch.')
+      const assigneeName = values.assigneeUid
+        ? (projectMembers.find(member => member.id === values.assigneeUid)?.displayName
+          || orgMembers.find(member => member.id === values.assigneeUid)?.displayName
+          || orgMembers.find(member => member.id === values.assigneeUid)?.email
+          || 'the assignee')
+        : ''
+      const emailResult = values.assigneeUid ? await notifyTaskAssignee(createdTask.id) : null
+      setNotice('Task added to the launch.' + assignmentNotice(emailResult, assigneeName))
     } catch {
       setError('Task could not be created. Check that you have contributor or project manager access.')
       throw new Error('Task could not be created.')
@@ -686,6 +714,9 @@ export default function LaunchWorkspacePage() {
     setNotice('')
     try {
       const member = projectMembers.find(item => item.id === values.assigneeUid) || orgMembers.find(item => item.id === values.assigneeUid)
+      const previousAssigneeUid = editingTask.assignedToUid || editingTask.assigneeUids?.[0] || ''
+      const nextAssigneeUid = values.assigneeUid || ''
+      const assigneeChanged = Boolean(nextAssigneeUid && nextAssigneeUid !== previousAssigneeUid)
       await updateDoc(doc(db, 'organisations', selectedOrgId, 'projects', projectId, 'tasks', editingTask.id), {
         title: values.title.trim(),
         description: (values.description || '').trim(),
@@ -701,8 +732,9 @@ export default function LaunchWorkspacePage() {
         updatedAt: serverTimestamp()
       })
       await recordActivity('task_updated', 'Updated task "' + values.title.trim() + '".', editingTask.id)
+      const emailResult = assigneeChanged ? await notifyTaskAssignee(editingTask.id) : null
       setEditingTask(null)
-      setNotice('Task updated.')
+      setNotice('Task updated.' + assignmentNotice(emailResult, member?.displayName || member?.email || 'the assignee'))
     } catch {
       setError('Task could not be updated. Check your project permissions and try again.')
     } finally {
@@ -765,7 +797,7 @@ export default function LaunchWorkspacePage() {
       const tasks = taskSnapshot.docs
       const commentsByTask = await Promise.all(tasks.map(task => getDocs(collection(db, ...base, 'tasks', task.id, 'comments'))))
       // Keep project membership records until Storage cleanup finishes so Storage rules can authorise deletion.
-      const storedObjects = await collectStorageFiles(storageRef(getStorage(), 'organisations/' + selectedOrgId + '/projects/' + projectId))
+      const storedObjects = await collectStorageFiles(storageRef(storage, 'organisations/' + selectedOrgId + '/projects/' + projectId))
       for (let index = 0; index < storedObjects.length; index += 12) {
         await Promise.all(storedObjects.slice(index, index + 12).map(objectRef => deleteObject(objectRef).catch(removeError => {
           if (removeError?.code !== 'storage/object-not-found') throw removeError
@@ -848,6 +880,7 @@ export default function LaunchWorkspacePage() {
         <button role="tab" aria-selected={activeTab === 'team'} className={activeTab === 'team' ? 'active' : ''} onClick={() => setActiveTab('team')}><Icon name="users" size={15}/> Team <span>{projectMembers.length}</span></button>
         <button role="tab" aria-selected={activeTab === 'settings'} className={activeTab === 'settings' ? 'active' : ''} onClick={() => setActiveTab('settings')}><Icon name="settings" size={15}/> Settings</button>
         <button role="tab" aria-selected={activeTab === 'closeout'} className={activeTab === 'closeout' ? 'active' : ''} onClick={() => setActiveTab('closeout')}><Icon name="archive" size={15}/> Close-out</button>
+        {canDeleteProject && <button role="tab" aria-selected={activeTab === 'delete'} className={'v2-danger-tab' + (activeTab === 'delete' ? ' active' : '')} onClick={() => setActiveTab('delete')}><Icon name="trash" size={15}/> Delete launch</button>}
       </div>
 
       {activeTab === 'tasks' ? (
@@ -913,9 +946,11 @@ export default function LaunchWorkspacePage() {
       ) : activeTab === 'activity' ? (
         <ProjectActivityPanel items={activity}/>
       ) : activeTab === 'settings' ? (
-        <ProjectSettingsPanel project={project} canManage={canManageTeam} canDelete={canDeleteProject} onSave={updateProjectSettings} busy={busy} deleting={deletingProject} onDelete={deleteProject}/>
+        <ProjectSettingsPanel project={project} canManage={canManageTeam} onSave={updateProjectSettings} busy={busy}/>
       ) : activeTab === 'closeout' ? (
         <LaunchCloseoutPanel project={project} orgId={selectedOrgId} projectId={projectId} user={user} canManage={canManageTeam}/>
+      ) : activeTab === 'delete' && canDeleteProject ? (
+        <ProjectDeletionPanel project={project} canDelete={canDeleteProject} busy={deletingProject} onDelete={deleteProject}/>
       ) : (
         <section className="v2-panel v2-delivery-panel">
           <div className="v2-panel-heading"><div><h2>Launch team</h2><p>Control which organisation members can view or contribute to this launch.</p></div></div>

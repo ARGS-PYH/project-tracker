@@ -830,3 +830,6 @@
 .v2-launch-countdown { font-variant-numeric: tabular-nums; }
 .v2-countdown-label { letter-spacing: .015em; }
 .v2-launch-countdown.compact { gap: 7px; }
+
+.v2-danger-tab { color: var(--v2-danger) !important; }
+.v2-danger-tab.active { color: #fff !important; background: var(--v2-danger) !important; }
