@@ -16,6 +16,7 @@ export function WorkspaceProvider({ children }) {
     try { return localStorage.getItem('pltk_selected_org') || '' } catch { return '' }
   })
   const [projects, setProjects] = useState([])
+  const [deletedProjects, setDeletedProjects] = useState([])
   const [organisationLoading, setOrganisationLoading] = useState(true)
   const [projectsLoading, setProjectsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -130,11 +131,13 @@ export function WorkspaceProvider({ children }) {
   useEffect(() => {
     if (!selectedOrgId || !user?.uid || !user.emailVerified) {
       setProjects([])
+      setDeletedProjects([])
       setProjectsLoading(false)
       return undefined
     }
     if (organisationLoading) {
       setProjects([])
+      setDeletedProjects([])
       setProjectsLoading(false)
       return undefined
     }
@@ -165,17 +168,20 @@ export function WorkspaceProvider({ children }) {
               const bTime = b.updatedAt?.toMillis?.() || 0
               return bTime - aTime
             })
-          setProjects(records)
+          setProjects(records.filter(project => project.deletionStatus !== 'deleted'))
+          setDeletedProjects(records.filter(project => project.deletionStatus === 'deleted'))
           setProjectsLoading(false)
         } catch {
           if (!active || version !== requestVersion) return
           setProjects([])
+          setDeletedProjects([])
           setError('We could not load projects shared with this guest account.')
           setProjectsLoading(false)
         }
       }, () => {
         if (!active) return
         setProjects([])
+        setDeletedProjects([])
         setError('We could not load projects shared with this guest account.')
         setProjectsLoading(false)
       })
@@ -191,10 +197,12 @@ export function WorkspaceProvider({ children }) {
           const bTime = b.updatedAt?.toMillis?.() || 0
           return bTime - aTime
         })
-      setProjects(records)
+      setProjects(records.filter(project => project.deletionStatus !== 'deleted'))
+      setDeletedProjects(records.filter(project => project.deletionStatus === 'deleted'))
       setProjectsLoading(false)
     }, () => {
       setProjects([])
+      setDeletedProjects([])
       setError('We could not load launches for this organisation.')
       setProjectsLoading(false)
     })
@@ -293,6 +301,7 @@ export function WorkspaceProvider({ children }) {
     setSelectedOrgId,
     selectedOrganisation,
     projects,
+    deletedProjects,
     organisationLoading,
     projectsLoading,
     error,
