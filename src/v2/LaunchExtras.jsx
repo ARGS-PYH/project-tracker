@@ -504,14 +504,14 @@ export function ProjectActivityPanel({ items }) {
 export function LaunchCountdown({ targetDate, compact = false }) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 60 * 1000)
+    const timer = window.setInterval(() => setNow(new Date()), 1000)
     return () => window.clearInterval(timer)
   }, [])
   const countdown = getLaunchCountdown(targetDate, now)
   return (
-    <div className={'v2-launch-countdown ' + (compact ? 'compact ' : '') + 'is-' + countdown.kind} aria-live="polite">
+    <div className={'v2-launch-countdown ' + (compact ? 'compact ' : '') + 'is-' + countdown.kind} aria-live="off" title={countdown.label}>
       <Icon name="clock" size={compact ? 13 : 17}/>
-      <span>{countdown.label}</span>
+      <span className="v2-countdown-label">{compact ? countdown.compactLabel : countdown.label}</span>
     </div>
   )
 }
