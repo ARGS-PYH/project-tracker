@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { collection, doc, getDoc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { collection, doc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { db } from '../firebase.js'
 import { useAuth } from './auth/AuthProvider.jsx'
 
@@ -152,33 +152,49 @@ export function WorkspaceProvider({ children }) {
     // organisation members can query the organisation's launch summaries.
     if (selectedOrganisation?.role === 'guest') {
       let active = true
-      let requestVersion = 0
+      const projectRecords = new Map()
+      const projectListeners = new Map()
+      const publishGuestProjects = () => {
+        if (!active) return
+        const records = [...projectRecords.values()].sort((a, b) => {
+          const aTime = a.updatedAt?.toMillis?.() || 0
+          const bTime = b.updatedAt?.toMillis?.() || 0
+          return bTime - aTime
+        })
+        setProjects(records.filter(project => project.deletionStatus !== 'deleted'))
+        setDeletedProjects(records.filter(project => project.deletionStatus === 'deleted'))
+        setProjectsLoading(false)
+      }
       const indexRef = collection(db, 'organisations', selectedOrgId, 'members', user.uid, 'projects')
-      const unsubscribe = onSnapshot(indexRef, async snapshot => {
-        const version = ++requestVersion
-        try {
-          const projectSnapshots = await Promise.all(snapshot.docs.map(item =>
-            getDoc(doc(db, 'organisations', selectedOrgId, 'projects', item.id))
-          ))
-          if (!active || version !== requestVersion) return
-          const records = projectSnapshots
-            .filter(item => item.exists())
-            .map(item => ({ id: item.id, ...item.data() }))
-            .sort((a, b) => {
-              const aTime = a.updatedAt?.toMillis?.() || 0
-              const bTime = b.updatedAt?.toMillis?.() || 0
-              return bTime - aTime
-            })
-          setProjects(records.filter(project => project.deletionStatus !== 'deleted'))
-          setDeletedProjects(records.filter(project => project.deletionStatus === 'deleted'))
-          setProjectsLoading(false)
-        } catch {
-          if (!active || version !== requestVersion) return
-          setProjects([])
-          setDeletedProjects([])
-          setError('We could not load projects shared with this guest account.')
-          setProjectsLoading(false)
+      const unsubscribeIndex = onSnapshot(indexRef, snapshot => {
+        const nextIds = new Set(snapshot.docs.map(item => item.id))
+        for (const [id, unsubscribe] of projectListeners.entries()) {
+          if (!nextIds.has(id)) {
+            unsubscribe()
+            projectListeners.delete(id)
+            projectRecords.delete(id)
+          }
         }
+        snapshot.docs.forEach(indexItem => {
+          if (projectListeners.has(indexItem.id)) return
+          const projectRef = doc(db, 'organisations', selectedOrgId, 'projects', indexItem.id)
+          const unsubscribeProject = onSnapshot(projectRef, projectSnapshot => {
+            if (!active) return
+            if (projectSnapshot.exists()) {
+              projectRecords.set(indexItem.id, { id: indexItem.id, ...projectSnapshot.data() })
+            } else {
+              projectRecords.delete(indexItem.id)
+            }
+            publishGuestProjects()
+          }, () => {
+            if (!active) return
+            projectRecords.delete(indexItem.id)
+            setError('We could not load projects shared with this guest account.')
+            publishGuestProjects()
+          })
+          projectListeners.set(indexItem.id, unsubscribeProject)
+        })
+        publishGuestProjects()
       }, () => {
         if (!active) return
         setProjects([])
@@ -186,7 +202,12 @@ export function WorkspaceProvider({ children }) {
         setError('We could not load projects shared with this guest account.')
         setProjectsLoading(false)
       })
-      return () => { active = false; unsubscribe() }
+      return () => {
+        active = false
+        unsubscribeIndex()
+        projectListeners.forEach(unsubscribe => unsubscribe())
+        projectListeners.clear()
+      }
     }
 
     const ref = collection(db, 'organisations', selectedOrgId, 'projects')
