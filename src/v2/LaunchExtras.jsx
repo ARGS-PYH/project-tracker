@@ -764,7 +764,7 @@ export function ProjectDeletionPanel({ project, canDelete, busy, onDelete }) {
         <span className="v2-panel-icon danger"><Icon name="trash" size={18}/></span>
       </div>
       {!canDelete ? <p className="v2-invite-footnote">Only an organisation owner or administrator can move a launch to Deleted Projects.</p> : <>
-        <div className="v2-delete-project-warning"><strong>This is a reversible action.</strong><p>PLTK will prepare an Excel workbook and PDF report, then move "{project.name}" to Deleted Projects. Its Firestore records, memberships and uploaded files are retained. An organisation owner or administrator can restore it later.</p></div>
+        <div className="v2-delete-project-warning"><strong>This is a reversible action.</strong><p>PLTK will download one ZIP containing an Excel workbook and PDF report, then move "{project.name}" to Deleted Projects. Its Firestore records, memberships and uploaded files are retained. Original file contents are not bundled in this report yet; the workbook includes their available metadata. An organisation owner or administrator can restore the launch later.</p></div>
         <label className="v2-field"><span>Type the launch name to confirm</span><input value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder={project.name} autoComplete="off"/></label>
         <div className="v2-form-actions"><button type="button" className="v2-button v2-button-danger" disabled={busy || confirmation.trim() !== project.name} onClick={onDelete}>{busy ? 'Preparing reports…' : 'Download reports & delete launch'} <Icon name="trash" size={15}/></button></div>
       </>}
