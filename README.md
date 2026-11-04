@@ -37,8 +37,9 @@ The current v2 implementation is being developed on the `pltk-v2` branch. The ex
 - Richer calendar interactions and dependency reporting.
 - Richer task history and activity filtering.
 - Milestone approvals and multi-step completion workflows.
-- Automated notification generation, delivery preferences and email/push delivery.
-- Backend email delivery for organisation invitations and notifications.
+- Automated notification preferences and push delivery.
+- Organisation invitation email delivery.
+- Task-assignment emails are implemented through the Render API but require the Render Firebase and SMTP environment variables described in docs/RENDER-EMAIL-SETUP.md.
 - Team-specific task filters and workload management.
 - Launch settings and lifecycle approvals.
 - Legacy PLTK project/member/task migration tooling.
@@ -60,7 +61,7 @@ Product and engineering decisions are recorded in [docs/PLTK-V2-FOUNDATION.md](d
 - Firebase Authentication
 - Cloud Firestore
 - Firebase Storage
-- Node.js and Express for trusted backend services
+- Node.js 18+ and Express for trusted backend services
 
 ## Local development
 
@@ -119,3 +120,8 @@ Before any production migration:
 - Deploy v2 only after the new app and rules have passed acceptance and security tests.
 
 Never use production records as test fixtures.
+
+
+## Task assignment email notifications
+
+When a task is created with an assignee, or reassigned to another team member, PLTK calls the Render API to send one assignment email. A notification ID is stored on the task to prevent duplicate emails for the same assignment event. Configure the required Render and Vite environment variables in [docs/RENDER-EMAIL-SETUP.md](docs/RENDER-EMAIL-SETUP.md). If email delivery is unavailable, the task is still saved and the workspace reports that the email was not sent.
