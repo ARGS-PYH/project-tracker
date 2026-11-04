@@ -175,6 +175,7 @@ function Sidebar({ onClose }) {
           <nav className="v2-nav">
             <NavLink to="/app/settings" onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}><Icon name="settings"/><span>Settings</span></NavLink>
             <NavLink to="/app/members" onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}><Icon name="shield"/><span>Members & access</span></NavLink>
+            <NavLink to="/app/launches/deleted" onClick={onClose} className={({ isActive }) => 'v2-nav-link' + (isActive ? ' active' : '')}><Icon name="trash"/><span>Deleted launches</span></NavLink>
           </nav>
         </>
       )}
