@@ -760,13 +760,13 @@ export function ProjectDeletionPanel({ project, canDelete, busy, onDelete }) {
   return (
     <section className="v2-panel v2-delete-project-panel">
       <div className="v2-panel-heading">
-        <div><span className="v2-eyebrow">DANGER ZONE</span><h2>Delete this launch</h2><p>Permanently remove this launch and its stored work from the active PLTK workspace.</p></div>
+        <div><span className="v2-eyebrow">DANGER ZONE</span><h2>Delete this launch</h2><p>Download a complete closeout report, then move this launch out of the active PLTK workspace.</p></div>
         <span className="v2-panel-icon danger"><Icon name="trash" size={18}/></span>
       </div>
-      {!canDelete ? <p className="v2-invite-footnote">Only an organisation owner or administrator can permanently delete a launch.</p> : <>
-        <div className="v2-delete-project-warning"><strong>This cannot be undone.</strong><p>Deleting "{project.name}" removes its tasks, comments, comment images, milestones, activity history, files and project access records. Download the close-out ZIP first if you need a copy.</p></div>
+      {!canDelete ? <p className="v2-invite-footnote">Only an organisation owner or administrator can move a launch to Deleted Projects.</p> : <>
+        <div className="v2-delete-project-warning"><strong>This is a reversible action.</strong><p>PLTK will prepare an Excel workbook and PDF report, then move "{project.name}" to Deleted Projects. Its Firestore records, memberships and uploaded files are retained. An organisation owner or administrator can restore it later.</p></div>
         <label className="v2-field"><span>Type the launch name to confirm</span><input value={confirmation} onChange={event => setConfirmation(event.target.value)} placeholder={project.name} autoComplete="off"/></label>
-        <div className="v2-form-actions"><button type="button" className="v2-button v2-button-danger" disabled={busy || confirmation.trim() !== project.name} onClick={onDelete}>{busy ? 'Deleting launch…' : 'Permanently delete launch'} <Icon name="trash" size={15}/></button></div>
+        <div className="v2-form-actions"><button type="button" className="v2-button v2-button-danger" disabled={busy || confirmation.trim() !== project.name} onClick={onDelete}>{busy ? 'Preparing reports…' : 'Download reports & delete launch'} <Icon name="trash" size={15}/></button></div>
       </>}
     </section>
   )
